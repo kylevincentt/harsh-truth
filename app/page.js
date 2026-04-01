@@ -20,6 +20,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -55,6 +56,15 @@ export default function Home() {
   return (
     <>
       <header className="header">
+        <button
+          className="hamburger-btn"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
         <span className="header-title">HARSH TRUTH</span>
         <span className="header-tagline">&ldquo;No algorithm. Just curation.&rdquo;</span>
         <Link href="/admin" className="header-admin">
@@ -63,14 +73,17 @@ export default function Home() {
       </header>
 
       <div className="layout">
-        <aside className="sidebar">
+        {sidebarOpen && (
+          <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+        )}
+        <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
           <span className="sidebar-label">Categories</span>
           <ul className="category-list">
             {CATEGORIES.map((cat) => (
               <li
                 key={cat}
                 className={`category-item ${activeCategory === cat ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat)}
+                onClick={() => { setActiveCategory(cat); setSidebarOpen(false); }}
               >
                 <span>{cat}</span>
                 <span className="category-count">{categoryCounts[cat] || 0}</span>
