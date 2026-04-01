@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createClient } from '../../lib/supabase-browser';
 import Link from 'next/link';
 
+const supabase = createClient();
+
 export default function AdminPage() {
-  const [password, setPassword] = useState('');
-  const [authenticated, setAuthenticated] = useState(false);
-  const [authError, setAuthError] = useState('');
+  const [user, setUser] = useState(null);
+  const [authorized, setAuthorized] = useState(null); // null=loading, true/false=result
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
@@ -16,48 +18,44 @@ export default function AdminPage() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  async function handleLogin(e) {
-    e.preventDefault();
-    setAuthError('');
-
-    const res = await fetch('/api/admin/submissions', {
-      headers: { 'x-admin-password': password },
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        fetchSubmissions();
+      } else {
+        setAuthorized(false);
+      }
     });
 
-    if (res.ok) {
-      setAuthenticated(true);
-      const data = await res.json();
-      setSubmissions(data);
-    } else {
-      setAuthError('Invalid password.');
-    }
-  }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (!session?.user) setAuthorized(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function fetchSubmissions() {
     setLoading(true);
-    const res = await fetch('/api/admin/submissions', {
-      headers: { 'x-admin-password': password },
-    });
-    if (res.ok) {
+    const res = await fetch('/api/admin/submissions');
+    setLoading(false);
+
+    if (res.status === 401) {
+      setAuthorized(false);
+    } else if (res.ok) {
+      setAuthorized(true);
       const data = await res.json();
       setSubmissions(data);
     }
-    setLoading(false);
   }
-
-  useEffect(() => {
-    if (authenticated) {
-      fetchSubmissions();
-    }
-  }, [authenticated]);
 
   async function handleApprove(submission) {
     const res = await fetch('/api/admin/approve', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-password': password,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: submission.id }),
     });
 
@@ -72,10 +70,7 @@ export default function AdminPage() {
   async function handleReject(submission) {
     const res = await fetch('/api/admin/reject', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-password': password,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: submission.id }),
     });
 
@@ -87,30 +82,41 @@ export default function AdminPage() {
     }
   }
 
-  if (!authenticated) {
+  // Loading — waiting for session check
+  if (authorized === null) {
+    return (
+      <div className="admin-overlay">
+        <div className="queue-empty">Checking access&hellip;</div>
+      </div>
+    );
+  }
+
+  // Not logged in
+  if (authorized === false && !user) {
     return (
       <div className="admin-overlay">
         <div className="admin-login">
           <div className="admin-login-title">ADMIN ACCESS</div>
-          <p className="admin-login-sub">Enter the admin password to continue.</p>
-          <form onSubmit={handleLogin}>
-            <input
-              className="admin-password-input"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoFocus
-            />
-            {authError && (
-              <div className="form-error" style={{ marginBottom: '1rem' }}>
-                {authError}
-              </div>
-            )}
-            <button type="submit" className="admin-login-btn">
-              Enter
-            </button>
-          </form>
+          <p className="admin-login-sub">
+            You must be signed in with an admin account to access this page.
+          </p>
+          <Link href="/" className="admin-login-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: '1rem' }}>
+            Go to Site
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Logged in but not admin
+  if (authorized === false && user) {
+    return (
+      <div className="admin-overlay">
+        <div className="admin-login">
+          <div className="admin-login-title">ACCESS DENIED</div>
+          <p className="admin-login-sub">
+            Your account does not have admin privileges.
+          </p>
           <Link
             href="/"
             style={{
@@ -170,12 +176,20 @@ export default function AdminPage() {
                 </span>
               </span>
             </div>
-            {sub.note && <div className="queue-item-note">&ldquo;{sub.note}&rdquo;</div>}
+            {sub.note && (
+              <div className="queue-item-note">&ldquo;{sub.note}&rdquo;</div>
+            )}
             <div className="queue-actions">
-              <button className="btn-approve" onClick={() => handleApprove(sub)}>
+              <button
+                className="btn-approve"
+                onClick={() => handleApprove(sub)}
+              >
                 Approve
               </button>
-              <button className="btn-reject" onClick={() => handleReject(sub)}>
+              <button
+                className="btn-reject"
+                onClick={() => handleReject(sub)}
+              >
                 Reject
               </button>
             </div>

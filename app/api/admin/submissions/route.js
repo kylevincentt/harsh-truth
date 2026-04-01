@@ -1,15 +1,30 @@
 import { NextResponse } from 'next/server';
+import { createClient as createServerClient } from '../../../../lib/supabase-server';
 import { createAdminClient } from '../../../../lib/supabase';
 
-export async function GET(request) {
-  const password = request.headers.get('x-admin-password');
+async function getAdminUser() {
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
 
-  if (password !== process.env.ADMIN_PASSWORD) {
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single();
+
+  return profile?.is_admin ? user : null;
+}
+
+export async function GET() {
+  const user = await getAdminUser();
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
+  const admin = createAdminClient();
+  const { data, error } = await admin
     .from('submissions')
     .select('*')
     .eq('status', 'pending')

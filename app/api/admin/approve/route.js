@@ -1,18 +1,32 @@
 import { NextResponse } from 'next/server';
+import { createClient as createServerClient } from '../../../../lib/supabase-server';
 import { createAdminClient } from '../../../../lib/supabase';
 
-export async function POST(request) {
-  const password = request.headers.get('x-admin-password');
+async function getAdminUser() {
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
 
-  if (password !== process.env.ADMIN_PASSWORD) {
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single();
+
+  return profile?.is_admin ? user : null;
+}
+
+export async function POST(request) {
+  const user = await getAdminUser();
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { id } = await request.json();
-  const supabase = createAdminClient();
+  const admin = createAdminClient();
 
-  // Get the submission
-  const { data: submission, error: fetchError } = await supabase
+  const { data: submission, error: fetchError } = await admin
     .from('submissions')
     .select('*')
     .eq('id', id)
@@ -22,17 +36,14 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
   }
 
-  // Extract handle from URL or use a placeholder
   const urlMatch = submission.post_url.match(/(?:x\.com|twitter\.com)\/(\w+)\/status/);
   const handle = urlMatch ? `@${urlMatch[1]}` : '@unknown';
 
-  // Create the date label
   const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   const now = new Date();
   const dateLabel = `${months[now.getMonth()]} ${now.getFullYear()}`;
 
-  // Insert into approved_posts
-  const { error: insertError } = await supabase.from('approved_posts').insert({
+  const { error: insertError } = await admin.from('approved_posts').insert({
     handle,
     post_url: submission.post_url,
     post_text: submission.note || 'Post approved from submission.',
@@ -44,8 +55,7 @@ export async function POST(request) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
-  // Update submission status
-  await supabase
+  await admin
     .from('submissions')
     .update({ status: 'approved' })
     .eq('id', id);
