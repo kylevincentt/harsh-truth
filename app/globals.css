@@ -334,6 +334,7 @@ button {
   transition: all 0.2s;
   width: 100%;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .submit-btn:hover {

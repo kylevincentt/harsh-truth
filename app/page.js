@@ -144,9 +144,11 @@ export default function Home() {
               Sign In
             </button>
           )}
-          <Link href="/admin" className="header-admin">
-            Admin
-          </Link>
+          {user && (
+            <Link href="/admin" className="header-admin">
+              Admin
+            </Link>
+          )}
         </div>
       </header>
 
