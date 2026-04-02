@@ -415,6 +415,13 @@ button {
   margin-bottom: 1rem;
 }
 
+.post-image {
+  display: block;
+  max-width: 100%;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
 .post-footer {
   display: flex;
   justify-content: flex-end;

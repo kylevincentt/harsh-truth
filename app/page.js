@@ -215,6 +215,13 @@ function PostCard({ post, index }) {
         <span className="post-date">{post.date_label}</span>
       </div>
       <p className="post-text">{post.post_text}</p>
+      {post.image_url && (
+        <img
+          src={post.image_url}
+          alt="Tweet image"
+          className="post-image"
+        />
+      )}
       <div className="post-footer">
         {post.post_url && (
           <a
