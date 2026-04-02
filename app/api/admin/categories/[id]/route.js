@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '../../../../../lib/supabase';
-
-function checkAuth(request) {
-  return request.headers.get('x-admin-password') === process.env.ADMIN_PASSWORD;
-}
+import { getAdminUser } from '../../../../../lib/admin-auth';
 
 export async function PUT(request, { params }) {
-  if (!checkAuth(request)) {
+  const admin = await getAdminUser();
+  if (!admin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -59,7 +57,8 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  if (!checkAuth(request)) {
+  const admin = await getAdminUser();
+  if (!admin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -79,7 +78,6 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ error: 'Cannot delete the "Other" category.' }, { status: 400 });
   }
 
-  // Reassign posts before deleting
   await supabase
     .from('approved_posts')
     .update({ category: 'Other' })

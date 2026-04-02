@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '../../../../lib/supabase';
+import { getAdminUser } from '../../../../lib/admin-auth';
 
 export async function POST(request) {
-  const password = request.headers.get('x-admin-password');
-
-  if (password !== process.env.ADMIN_PASSWORD) {
+  const admin = await getAdminUser();
+  if (!admin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
