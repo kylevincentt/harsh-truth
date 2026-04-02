@@ -8,6 +8,88 @@ import Link from 'next/link';
 
 const supabase = createClient();
 
+const COLOR_KEYS = [
+  { key: 'bg', label: 'Background' },
+  { key: 'bg-card', label: 'Card Bg' },
+  { key: 'bg-card-hover', label: 'Card Hover' },
+  { key: 'text', label: 'Text' },
+  { key: 'text-muted', label: 'Muted Text' },
+  { key: 'red', label: 'Accent' },
+  { key: 'gold', label: 'Gold' },
+  { key: 'border', label: 'Border' },
+];
+
+const BLANK_COLORS = {
+  bg: '#0a0a0a',
+  'bg-card': '#111111',
+  'bg-card-hover': '#1a1a1a',
+  text: '#f2ede6',
+  'text-muted': '#8a8478',
+  red: '#c0392b',
+  gold: '#c9a84c',
+  border: '#222222',
+};
+
+function ThemePreview({ colors }) {
+  return (
+    <div className="theme-preview">
+      <div className="theme-preview-label">Preview</div>
+      <div
+        className="theme-preview-card"
+        style={{
+          background: colors['bg-card'],
+          borderColor: colors['border'],
+        }}
+      >
+        <div className="theme-preview-handle" style={{ color: colors['gold'] }}>
+          @example
+        </div>
+        <div
+          className="theme-preview-category"
+          style={{
+            color: colors['red'],
+            background: `${colors['red']}22`,
+          }}
+        >
+          Category
+        </div>
+        <div className="theme-preview-text" style={{ color: colors['text'] }}>
+          This is a sample post showing how text looks in this theme.
+        </div>
+        <div className="theme-preview-muted" style={{ color: colors['text-muted'] }}>
+          View original &rarr;
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ThemeColorEditor({ colors, onChange }) {
+  return (
+    <div className="theme-color-grid">
+      {COLOR_KEYS.map(({ key, label }) => (
+        <div key={key} className="theme-color-field">
+          <span className="theme-color-field-label">{label}</span>
+          <input
+            type="color"
+            className="theme-color-swatch-input"
+            value={colors[key] || '#000000'}
+            onChange={(e) => onChange(key, e.target.value)}
+          />
+          <input
+            type="text"
+            className="theme-color-hex-input"
+            value={colors[key] || ''}
+            onChange={(e) => onChange(key, e.target.value)}
+            placeholder="#000000"
+            maxLength={7}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [user, setUser] = useState(null);
   const [authorized, setAuthorized] = useState(null); // null=loading, true/false=result
@@ -22,6 +104,13 @@ export default function AdminPage() {
   const [newCatName, setNewCatName] = useState('');
   const [editingCat, setEditingCat] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+
+  // Theme state
+  const [themes, setThemes] = useState([]);
+  const [themeLoading, setThemeLoading] = useState(false);
+  const [editingTheme, setEditingTheme] = useState(null); // { id, name, colors }
+  const [addingTheme, setAddingTheme] = useState(null); // { name, colors }
+  const [themeDeleteConfirm, setThemeDeleteConfirm] = useState(null);
 
   function showToast(message, type = 'success') {
     setToast({ message, type });
@@ -60,6 +149,7 @@ export default function AdminPage() {
       const data = await res.json();
       setSubmissions(data);
       fetchCategories();
+      fetchThemes();
     }
   }
 
@@ -81,6 +171,16 @@ export default function AdminPage() {
       setCategories(data);
     }
     setCatLoading(false);
+  }
+
+  async function fetchThemes() {
+    setThemeLoading(true);
+    const res = await fetch('/api/admin/themes');
+    if (res.ok) {
+      const data = await res.json();
+      setThemes(data);
+    }
+    setThemeLoading(false);
   }
 
   async function handleApprove(submission) {
@@ -165,6 +265,102 @@ export default function AdminPage() {
       const err = await res.json();
       showToast(err.error || 'Failed to delete category.', 'error');
     }
+  }
+
+  // — Theme handlers —
+
+  function applyColorsToPage(colors) {
+    const root = document.documentElement;
+    Object.entries(colors).forEach(([key, value]) => {
+      root.style.setProperty(`--${key}`, value);
+    });
+  }
+
+  async function handleActivateTheme(id) {
+    const res = await fetch(`/api/admin/themes/${id}/activate`, { method: 'PUT' });
+    if (res.ok) {
+      const data = await res.json();
+      applyColorsToPage(data.colors);
+      fetchThemes();
+      showToast('Theme activated — live on site.');
+    } else {
+      showToast('Failed to activate theme.', 'error');
+    }
+  }
+
+  async function handleSaveThemeEdit() {
+    if (!editingTheme) return;
+    const res = await fetch(`/api/admin/themes/${editingTheme.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editingTheme.name, colors: editingTheme.colors }),
+    });
+    if (res.ok) {
+      setEditingTheme(null);
+      fetchThemes();
+      showToast('Theme saved.');
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Failed to save theme.', 'error');
+    }
+  }
+
+  async function handleCreateTheme(e) {
+    e.preventDefault();
+    if (!addingTheme?.name?.trim()) return;
+    const res = await fetch('/api/admin/themes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: addingTheme.name.trim(), colors: addingTheme.colors }),
+    });
+    if (res.ok) {
+      setAddingTheme(null);
+      fetchThemes();
+      showToast('Theme created.');
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Failed to create theme.', 'error');
+    }
+  }
+
+  async function handleDuplicateTheme(theme) {
+    const res = await fetch('/api/admin/themes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: `Copy of ${theme.name}`, colors: theme.colors }),
+    });
+    if (res.ok) {
+      fetchThemes();
+      showToast('Theme duplicated.');
+    } else {
+      showToast('Failed to duplicate theme.', 'error');
+    }
+  }
+
+  async function handleDeleteTheme(id) {
+    const res = await fetch(`/api/admin/themes/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setThemeDeleteConfirm(null);
+      fetchThemes();
+      showToast('Theme deleted.');
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Failed to delete theme.', 'error');
+    }
+  }
+
+  function updateEditingColor(key, value) {
+    setEditingTheme((prev) => ({
+      ...prev,
+      colors: { ...prev.colors, [key]: value },
+    }));
+  }
+
+  function updateAddingColor(key, value) {
+    setAddingTheme((prev) => ({
+      ...prev,
+      colors: { ...prev.colors, [key]: value },
+    }));
   }
 
   // Loading — waiting for session check
@@ -279,6 +475,13 @@ export default function AdminPage() {
         >
           Categories
           <span className="tab-count">{categories.length}</span>
+        </button>
+        <button
+          className={`admin-tab ${activeTab === 'themes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('themes')}
+        >
+          Themes
+          <span className="tab-count">{themes.length}</span>
         </button>
       </div>
 
@@ -416,6 +619,167 @@ export default function AdminPage() {
         </div>
       )}
 
+      {activeTab === 'themes' && (
+        <div className="theme-section">
+          <div className="theme-section-header">
+            <p className="theme-section-desc">
+              Manage color themes for the site. Activating a theme updates the live site instantly — no redeploy needed. Edit colors, duplicate themes as starting points, or create from scratch.
+            </p>
+            <button
+              className="theme-add-btn"
+              onClick={() =>
+                setAddingTheme({
+                  name: '',
+                  colors: { ...BLANK_COLORS },
+                })
+              }
+            >
+              + Add Theme
+            </button>
+          </div>
+
+          {addingTheme && (
+            <div className="theme-add-panel">
+              <div className="theme-add-panel-header">New Theme</div>
+              <form className="theme-add-panel-body" onSubmit={handleCreateTheme}>
+                <div className="theme-editor-name-row">
+                  <span className="theme-editor-name-label">Name</span>
+                  <input
+                    className="theme-editor-name-input"
+                    type="text"
+                    placeholder="Theme name&hellip;"
+                    value={addingTheme.name}
+                    onChange={(e) =>
+                      setAddingTheme((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    autoFocus
+                  />
+                </div>
+                <div className="theme-editor-body">
+                  <ThemeColorEditor
+                    colors={addingTheme.colors}
+                    onChange={updateAddingColor}
+                  />
+                  <ThemePreview colors={addingTheme.colors} />
+                </div>
+                <div className="theme-editor-actions">
+                  <button type="submit" className="theme-save-btn" disabled={!addingTheme.name.trim()}>
+                    Create Theme
+                  </button>
+                  <button
+                    type="button"
+                    className="theme-cancel-btn"
+                    onClick={() => setAddingTheme(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {themeLoading ? (
+            <div className="queue-empty">Loading themes&hellip;</div>
+          ) : (
+            <div className="theme-list">
+              {themes.map((theme) => (
+                <div
+                  key={theme.id}
+                  className={`theme-row${theme.is_active ? ' is-active' : ''}`}
+                >
+                  <div className="theme-row-header">
+                    <div className="theme-swatches">
+                      {['bg', 'bg-card', 'text', 'gold', 'red', 'border'].map((key) => (
+                        <div
+                          key={key}
+                          className="theme-swatch"
+                          style={{ background: theme.colors[key] }}
+                          title={`${key}: ${theme.colors[key]}`}
+                        />
+                      ))}
+                    </div>
+                    <span className="theme-name">{theme.name}</span>
+                    {theme.is_active && (
+                      <span className="theme-active-badge">Active</span>
+                    )}
+                    <div className="theme-row-actions">
+                      {!theme.is_active && (
+                        <button
+                          className="theme-btn theme-btn-activate"
+                          onClick={() => handleActivateTheme(theme.id)}
+                        >
+                          Activate
+                        </button>
+                      )}
+                      <button
+                        className="theme-btn theme-btn-edit"
+                        onClick={() =>
+                          setEditingTheme(
+                            editingTheme?.id === theme.id
+                              ? null
+                              : { id: theme.id, name: theme.name, colors: { ...theme.colors } }
+                          )
+                        }
+                      >
+                        {editingTheme?.id === theme.id ? 'Close' : 'Edit'}
+                      </button>
+                      <button
+                        className="theme-btn theme-btn-duplicate"
+                        onClick={() => handleDuplicateTheme(theme)}
+                      >
+                        Duplicate
+                      </button>
+                      <button
+                        className="theme-btn theme-btn-delete"
+                        onClick={() => setThemeDeleteConfirm(theme)}
+                        disabled={theme.is_active}
+                        title={theme.is_active ? 'Cannot delete the active theme' : ''}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  {editingTheme?.id === theme.id && (
+                    <div className="theme-editor">
+                      <div className="theme-editor-name-row">
+                        <span className="theme-editor-name-label">Name</span>
+                        <input
+                          className="theme-editor-name-input"
+                          type="text"
+                          value={editingTheme.name}
+                          onChange={(e) =>
+                            setEditingTheme((prev) => ({ ...prev, name: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <div className="theme-editor-body">
+                        <ThemeColorEditor
+                          colors={editingTheme.colors}
+                          onChange={updateEditingColor}
+                        />
+                        <ThemePreview colors={editingTheme.colors} />
+                      </div>
+                      <div className="theme-editor-actions">
+                        <button className="theme-save-btn" onClick={handleSaveThemeEdit}>
+                          Save Changes
+                        </button>
+                        <button
+                          className="theme-cancel-btn"
+                          onClick={() => setEditingTheme(null)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {deleteConfirm && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -431,6 +795,28 @@ export default function AdminPage() {
               <button
                 className="btn-reject"
                 onClick={() => handleDeleteCategory(deleteConfirm.id)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {themeDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setThemeDeleteConfirm(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">DELETE THEME</div>
+            <p className="modal-subtitle">
+              Delete &ldquo;{themeDeleteConfirm.name}&rdquo;? This cannot be undone.
+            </p>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setThemeDeleteConfirm(null)}>
+                Cancel
+              </button>
+              <button
+                className="btn-reject"
+                onClick={() => handleDeleteTheme(themeDeleteConfirm.id)}
               >
                 Delete
               </button>

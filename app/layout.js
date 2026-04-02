@@ -1,4 +1,5 @@
 import './globals.css';
+import ThemeLoader from './ThemeLoader';
 
 export const metadata = {
   title: 'HARSH TRUTH',
@@ -17,7 +18,10 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <ThemeLoader />
+        {children}
+      </body>
     </html>
   );
 }
