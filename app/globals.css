@@ -6,14 +6,14 @@
 }
 
 :root {
-  --bg: #0a0a0a;
-  --bg-card: #111111;
-  --bg-card-hover: #1a1a1a;
-  --text: #f2ede6;
-  --text-muted: #8a8478;
-  --red: #c0392b;
-  --gold: #c9a84c;
-  --border: #222222;
+  --bg: #1c1814;
+  --bg-card: #242018;
+  --bg-card-hover: #2c2620;
+  --text: #e8dcc8;
+  --text-muted: #8a7a66;
+  --red: #c47a3a;
+  --gold: #c9943a;
+  --border: #342e28;
   --font-heading: 'Bebas Neue', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
   --font-body: 'Libre Baskerville', serif;
@@ -58,7 +58,7 @@ button {
   font-family: var(--font-heading);
   font-size: 2.8rem;
   letter-spacing: 0.08em;
-  color: var(--text);
+  color: var(--red);
   line-height: 1;
 }
 
@@ -130,7 +130,7 @@ button {
 }
 
 .btn-signin:hover {
-  background: #e74c3c;
+  background: #d4893d;
 }
 
 .submit-hint {
@@ -334,7 +334,7 @@ button {
 }
 
 .submit-btn:hover {
-  background: #e74c3c;
+  background: #d4893d;
 }
 
 /* === FEED === */
@@ -395,7 +395,7 @@ button {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--red);
-  background: rgba(192, 57, 43, 0.15);
+  background: rgba(196, 122, 58, 0.15);
   padding: 0.2rem 0.6rem;
   border-radius: 2px;
 }
@@ -570,7 +570,7 @@ button {
 }
 
 .btn-submit:hover {
-  background: #e74c3c;
+  background: #d4893d;
 }
 
 .btn-submit:disabled {
@@ -728,7 +728,7 @@ button {
 }
 
 .admin-login-btn:hover {
-  background: #e74c3c;
+  background: #d4893d;
 }
 
 .queue-empty {
@@ -868,7 +868,7 @@ button {
 }
 
 .admin-tab.active .tab-count {
-  background: rgba(201, 168, 76, 0.15);
+  background: rgba(201, 148, 58, 0.15);
   color: var(--gold);
 }
 
@@ -904,7 +904,7 @@ button {
 }
 
 .cat-row:hover {
-  border-color: #333;
+  border-color: #3e3830;
 }
 
 .cat-name {
@@ -981,7 +981,7 @@ button {
 }
 
 .cat-btn-save:hover {
-  background: #d4b35a;
+  background: #d9a844;
 }
 
 .cat-btn-cancel {
@@ -1032,7 +1032,7 @@ button {
 }
 
 .cat-add-btn:hover {
-  background: #e74c3c;
+  background: #d4893d;
 }
 
 .cat-add-btn:disabled {
