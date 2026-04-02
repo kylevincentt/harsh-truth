@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 
-const CATEGORIES = [
+const FALLBACK_CATEGORIES = [
   'All',
   'Judiciary',
   'Media / Bias',
@@ -17,12 +17,14 @@ const CATEGORIES = [
 
 export default function Home() {
   const [posts, setPosts] = useState([]);
+  const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
   const [activeCategory, setActiveCategory] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchPosts();
+    fetchCategories();
   }, []);
 
   async function fetchPosts() {
@@ -38,12 +40,26 @@ export default function Home() {
     setLoading(false);
   }
 
+  async function fetchCategories() {
+    try {
+      const res = await fetch('/api/admin/categories');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setCategories(['All', ...data.map((c) => c.name)]);
+        }
+      }
+    } catch {
+      // keep fallback
+    }
+  }
+
   const filteredPosts =
     activeCategory === 'All'
       ? posts
       : posts.filter((p) => p.category === activeCategory);
 
-  const categoryCounts = CATEGORIES.reduce((acc, cat) => {
+  const categoryCounts = categories.reduce((acc, cat) => {
     if (cat === 'All') {
       acc[cat] = posts.length;
     } else {
@@ -66,7 +82,7 @@ export default function Home() {
         <aside className="sidebar">
           <span className="sidebar-label">Categories</span>
           <ul className="category-list">
-            {CATEGORIES.map((cat) => (
+            {categories.map((cat) => (
               <li
                 key={cat}
                 className={`category-item ${activeCategory === cat ? 'active' : ''}`}
@@ -100,7 +116,10 @@ export default function Home() {
       </div>
 
       {showModal && (
-        <SubmissionModal onClose={() => setShowModal(false)} />
+        <SubmissionModal
+          onClose={() => setShowModal(false)}
+          categories={categories.filter((c) => c !== 'All')}
+        />
       )}
     </>
   );
@@ -134,7 +153,7 @@ function PostCard({ post, index }) {
   );
 }
 
-function SubmissionModal({ onClose }) {
+function SubmissionModal({ onClose, categories }) {
   const [url, setUrl] = useState('');
   const [category, setCategory] = useState('');
   const [handle, setHandle] = useState('');
@@ -227,7 +246,7 @@ function SubmissionModal({ onClose }) {
               onChange={(e) => setCategory(e.target.value)}
             >
               <option value="">Select a category</option>
-              {CATEGORIES.filter((c) => c !== 'All').map((cat) => (
+              {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
