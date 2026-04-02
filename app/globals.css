@@ -264,7 +264,7 @@ button {
   width: 260px;
   min-width: 260px;
   height: calc(100vh - 80px);
-  overflow-y: auto;
+  overflow: hidden;
   border-right: 1px solid var(--border);
   padding: 1.5rem;
   display: flex;
@@ -278,6 +278,7 @@ button {
   letter-spacing: 0.15em;
   color: var(--text-muted);
   margin-bottom: 1rem;
+  flex-shrink: 0;
 }
 
 .category-list {
@@ -286,6 +287,8 @@ button {
   flex-direction: column;
   gap: 0.25rem;
   flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .category-item {
@@ -1131,7 +1134,7 @@ button {
     width: 260px;
     min-width: 260px;
     height: 100vh;
-    overflow-y: auto;
+    overflow: hidden;
     z-index: 150;
     transition: left 0.25s ease;
     border-right: 1px solid var(--border);
