@@ -10,13 +10,13 @@
   --bg-card: #242018;
   --bg-card-hover: #2c2620;
   --text: #e8dcc8;
-  --text-muted: #8a7a66;
+  --text-muted: #b0a898;
   --red: #c47a3a;
   --gold: #c9943a;
   --border: #342e28;
   --font-heading: 'Bebas Neue', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
-  --font-body: 'Libre Baskerville', serif;
+  --font-body: 'Inter', sans-serif;
 }
 
 html, body {
