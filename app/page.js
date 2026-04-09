@@ -28,6 +28,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const pendingSubmit = useRef(false);
   const headerRef = useRef(null);
 
@@ -50,7 +51,9 @@ export default function Home() {
     fetchCategories();
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const sessionUser = session?.user ?? null;
+      setUser(sessionUser);
+      if (sessionUser) fetchAdminStatus(sessionUser.id);
     });
 
     const {
@@ -58,10 +61,15 @@ export default function Home() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const newUser = session?.user ?? null;
       setUser(newUser);
-      if (newUser && pendingSubmit.current) {
-        pendingSubmit.current = false;
-        setShowAuthModal(false);
-        setShowModal(true);
+      if (newUser) {
+        fetchAdminStatus(newUser.id);
+        if (pendingSubmit.current) {
+          pendingSubmit.current = false;
+          setShowAuthModal(false);
+          setShowModal(true);
+        }
+      } else {
+        setIsAdmin(false);
       }
     });
 
@@ -77,6 +85,15 @@ export default function Home() {
 
     if (!error && data) setPosts(data);
     setLoading(false);
+  }
+
+  async function fetchAdminStatus(userId) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', userId)
+      .single();
+    setIsAdmin(data?.is_admin === true);
   }
 
   async function fetchCategories() {
@@ -159,7 +176,7 @@ export default function Home() {
               Sign In
             </button>
           )}
-          {user && (
+          {isAdmin && (
             <Link href="/admin" className="header-admin">
               Admin
             </Link>
