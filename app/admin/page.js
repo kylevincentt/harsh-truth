@@ -165,9 +165,11 @@ export default function AdminPage() {
 
   async function fetchCategories() {
     setCatLoading(true);
-    const res = await fetch('/api/admin/categories');
-    if (res.ok) {
-      const data = await res.json();
+    const { data } = await supabase
+      .from('categories')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (data) {
       setCategories(data);
     }
     setCatLoading(false);
