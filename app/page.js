@@ -29,6 +29,21 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
   const pendingSubmit = useRef(false);
+  const headerRef = useRef(null);
+
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        document.documentElement.style.setProperty(
+          '--header-height',
+          `${headerRef.current.offsetHeight}px`
+        );
+      }
+    };
+    updateHeaderHeight();
+    window.addEventListener('resize', updateHeaderHeight);
+    return () => window.removeEventListener('resize', updateHeaderHeight);
+  }, []);
 
   useEffect(() => {
     fetchPosts();
@@ -104,7 +119,7 @@ export default function Home() {
 
   return (
     <>
-      <header className="header">
+      <header className="header" ref={headerRef}>
         <button
           className="hamburger-btn"
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -151,6 +166,18 @@ export default function Home() {
           )}
         </div>
       </header>
+
+      <div className="mobile-category-bar">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            className={`mobile-cat-pill${activeCategory === cat ? ' active' : ''}`}
+            onClick={() => setActiveCategory(cat)}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
 
       <div className="layout">
         {sidebarOpen && (
