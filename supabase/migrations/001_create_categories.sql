@@ -22,5 +22,6 @@ insert into categories (name, sort_order) values
   ('Election Integrity', 4),
   ('Economy', 5),
   ('Foreign Policy', 6),
-  ('Other', 7)
+  ('Crime Stats', 7),
+  ('Other', 8)
 on conflict (name) do nothing;

@@ -163,13 +163,21 @@ export default function AdminPage() {
     setLoading(false);
   }
 
-  async function fetchCategories() {
+  async function fetchCategories(isRetry = false) {
     setCatLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('categories')
       .select('*')
       .order('sort_order', { ascending: true });
-    if (data) {
+
+    if (error && !isRetry) {
+      // Table likely missing — try to seed it via setup-db, then retry
+      const setup = await fetch('/api/admin/setup-db', { method: 'POST' });
+      if (setup.ok) {
+        return fetchCategories(true);
+      }
+      showToast('Categories table missing. Run migration SQL in Supabase.', 'error');
+    } else if (data) {
       setCategories(data);
     }
     setCatLoading(false);
