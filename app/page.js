@@ -184,7 +184,13 @@ export default function Home() {
           <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
         )}
         <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
-          <span className="sidebar-label">Categories</span>
+          <span className="sidebar-brand">HARSH TRUTH</span>
+          <button className="submit-btn" onClick={handleSubmitClick}>
+            Submit a Post
+          </button>
+          {!user && (
+            <p className="submit-hint">Sign in required to submit</p>
+          )}
           <ul className="category-list">
             {categories.map((cat) => (
               <li
@@ -197,12 +203,6 @@ export default function Home() {
               </li>
             ))}
           </ul>
-          <button className="submit-btn" onClick={handleSubmitClick}>
-            Submit a Post
-          </button>
-          {!user && (
-            <p className="submit-hint">Sign in required to submit</p>
-          )}
         </aside>
 
         <main className="feed">
