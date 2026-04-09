@@ -8,12 +8,27 @@ export async function PUT(request, { params }) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { name } = await request.json();
+  const body = await request.json();
+  const supabase = createAdminClient();
+
+  // sort_order-only update (reordering)
+  if (body.sort_order !== undefined && !body.name) {
+    const { data, error } = await supabase
+      .from('categories')
+      .update({ sort_order: body.sort_order })
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data);
+  }
+
+  const { name } = body;
   if (!name || !name.trim()) {
     return NextResponse.json({ error: 'Name is required' }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
   const newName = name.trim();
 
   const { data: existing } = await supabase

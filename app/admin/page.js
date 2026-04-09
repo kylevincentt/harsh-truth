@@ -262,6 +262,29 @@ export default function AdminPage() {
     }
   }
 
+  async function handleMoveCategory(index, direction) {
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= categories.length) return;
+
+    const a = categories[index];
+    const b = categories[swapIndex];
+
+    await Promise.all([
+      fetch(`/api/admin/categories/${a.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sort_order: b.sort_order }),
+      }),
+      fetch(`/api/admin/categories/${b.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sort_order: a.sort_order }),
+      }),
+    ]);
+
+    fetchCategories();
+  }
+
   async function handleDeleteCategory(id) {
     const res = await fetch(`/api/admin/categories/${id}`, {
       method: 'DELETE',
@@ -552,8 +575,26 @@ export default function AdminPage() {
             <div className="queue-empty">Loading categories&hellip;</div>
           ) : (
             <div className="cat-list">
-              {categories.map((cat) => (
+              {categories.map((cat, index) => (
                 <div key={cat.id} className="cat-row">
+                  <div className="cat-order-btns">
+                    <button
+                      className="cat-order-btn"
+                      onClick={() => handleMoveCategory(index, 'up')}
+                      disabled={index === 0}
+                      title="Move up"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      className="cat-order-btn"
+                      onClick={() => handleMoveCategory(index, 'down')}
+                      disabled={index === categories.length - 1}
+                      title="Move down"
+                    >
+                      ▼
+                    </button>
+                  </div>
                   {editingCat?.id === cat.id ? (
                     <>
                       <input

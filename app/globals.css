@@ -10,7 +10,7 @@
   --bg-card: #242018;
   --bg-card-hover: #2c2620;
   --text: #e8dcc8;
-  --text-muted: #b0a898;
+  --text-muted: #c8bbb0;
   --red: #c47a3a;
   --gold: #c9943a;
   --border: #342e28;
@@ -894,6 +894,32 @@ button {
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+}
+
+.cat-order-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.cat-order-btn {
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+.cat-order-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.cat-order-btn:disabled {
+  opacity: 0.2;
+  cursor: default;
 }
 
 .cat-row {
