@@ -717,10 +717,60 @@ img { max-width: 100%; height: auto; }
   font-size: 0.95rem;
   line-height: 1.7;
   color: var(--text);
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  /* Clamp long posts to ~8 lines; See more toggle expands */
+  display: -webkit-box;
+  -webkit-line-clamp: 8;
+  line-clamp: 8;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
+.post-text.is-expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+}
+
+.post-see-more {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gold);
+  padding: 0.1rem 0 0.75rem;
+  margin: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: opacity 0.15s;
+}
+.post-see-more:hover { opacity: 0.8; }
+
+/* X metrics row — small pill of icons + counts */
+.post-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.15rem;
+  padding: 0.6rem 0 0.75rem;
+  margin-bottom: 0.5rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+}
+.post-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+  cursor: default;
+}
+.post-metric svg { flex-shrink: 0; opacity: 0.8; }
 
 .post-image {
   display: block;
@@ -2059,17 +2109,6 @@ img { max-width: 100%; height: auto; }
   line-height: 1;
   opacity: 0.9;
 }
-
-/* Post meta: like count badge */
-.post-likes {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-  color: var(--text-muted);
-}
-.post-likes svg { flex-shrink: 0; }
 
 /* Reorganize feed-toolbar row: search left, toggle + meta right */
 .feed-toolbar {
