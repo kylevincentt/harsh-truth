@@ -9,6 +9,8 @@ async function fetchTweetData(postUrl) {
   let text = null;
   let imageUrl = null;
   let likeCount = null;
+  let repostCount = null;
+  let viewCount = null;
 
   // Fetch tweet text via Twitter oEmbed API (free, no auth required)
   try {
@@ -60,10 +62,26 @@ async function fetchTweetData(postUrl) {
       if (typeof data.favorite_count === 'number') {
         likeCount = data.favorite_count;
       }
+      // Repost (retweet) count: syndication sometimes exposes it on top-level or in stats.
+      const maybeRetweet =
+        (typeof data.retweet_count === 'number' && data.retweet_count) ||
+        (typeof data.quote_count === 'number' && data.quote_count) ||
+        (data.stats && typeof data.stats.retweet_count === 'number' && data.stats.retweet_count);
+      if (typeof maybeRetweet === 'number') {
+        repostCount = maybeRetweet;
+      }
+      // View count: only sometimes surfaced in newer responses.
+      const maybeViews =
+        (typeof data.view_count === 'number' && data.view_count) ||
+        (typeof data.views_count === 'number' && data.views_count) ||
+        (data.stats && typeof data.stats.view_count === 'number' && data.stats.view_count);
+      if (typeof maybeViews === 'number') {
+        viewCount = maybeViews;
+      }
     }
   } catch (_) {}
 
-  return { text, imageUrl, likeCount };
+  return { text, imageUrl, likeCount, repostCount, viewCount };
 }
 
 export async function POST(request) {
@@ -94,7 +112,7 @@ export async function POST(request) {
   const dateLabel = `${months[now.getMonth()]} ${now.getFullYear()}`;
 
   // Fetch real tweet text, image, and like count
-  const { text: tweetText, imageUrl, likeCount } = await fetchTweetData(submission.post_url);
+  const { text: tweetText, imageUrl, likeCount, repostCount, viewCount } = await fetchTweetData(submission.post_url);
 
   const baseInsert = {
     handle,
@@ -104,21 +122,28 @@ export async function POST(request) {
     date_label: dateLabel,
   };
 
-  // Insert into approved_posts (with image_url + like_count when columns exist)
-  let insertPayload = {
+  // Insert into approved_posts. Gracefully degrade if any optional column
+  // isn't in the schema yet (so approvals don't break mid-deploy).
+  const fullPayload = {
     ...baseInsert,
     image_url: imageUrl || null,
     like_count: typeof likeCount === 'number' ? likeCount : null,
+    repost_count: typeof repostCount === 'number' ? repostCount : null,
+    view_count: typeof viewCount === 'number' ? viewCount : null,
   };
-  let { error: insertError } = await supabase.from('approved_posts').insert(insertPayload);
-
-  // Gracefully retry without optional columns if the schema is out of date
-  if (insertError?.message?.includes('like_count')) {
-    insertPayload = { ...baseInsert, image_url: imageUrl || null };
-    ({ error: insertError } = await supabase.from('approved_posts').insert(insertPayload));
-  }
-  if (insertError?.message?.includes('image_url')) {
-    ({ error: insertError } = await supabase.from('approved_posts').insert(baseInsert));
+  let insertError = null;
+  const attempts = [
+    fullPayload,
+    { ...baseInsert, image_url: imageUrl || null, like_count: typeof likeCount === 'number' ? likeCount : null },
+    { ...baseInsert, image_url: imageUrl || null },
+    baseInsert,
+  ];
+  for (const payload of attempts) {
+    const res = await supabase.from('approved_posts').insert(payload);
+    insertError = res.error;
+    if (!insertError) break;
+    // Only retry if a column is missing; bail on any other error
+    if (!/column|schema cache/i.test(insertError.message || '')) break;
   }
 
   if (insertError) {
