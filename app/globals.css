@@ -538,20 +538,43 @@ img { max-width: 100%; height: auto; }
 /* === FEED === */
 .feed {
   flex: 1;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  background: var(--border);
+  padding: 1.5rem 1.5rem 1.5rem 2rem;
   min-width: 0;
+  /* Cap content width on large screens, like x.com */
+  max-width: 880px;
 }
 .feed:focus { outline: none; }
 
 .feed-toolbar {
   background: var(--bg);
-  padding: 1.25rem 1.5rem 0.85rem;
+  padding: 1.25rem 0 0.85rem;
   gap: 0.75rem;
-  margin: -1.5rem -1.5rem 1rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  position: sticky;
+  top: var(--header-height, 80px);
+  z-index: 80;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+/* 2-column grid on desktop */
+.feed-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+}
+
+/* Single column on narrow layouts */
+@media (max-width: 1024px) {
+  .feed-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .feed {
+    max-width: none;
+  }
 }
 
 .feed-empty {
@@ -630,10 +653,13 @@ img { max-width: 100%; height: auto; }
 /* === POST CARD === */
 .post-card {
   background: var(--bg-card);
-  padding: 1.5rem 2rem;
+  padding: 1.25rem 1.5rem;
   transition: background 0.15s;
   position: relative;
   animation: fadeUp 0.35s ease-out both;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .post-card:hover {
@@ -692,7 +718,9 @@ img { max-width: 100%; height: auto; }
 
 .post-image {
   display: block;
-  max-width: 100%;
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
   border-radius: 8px;
   margin-bottom: 1rem;
   background: var(--bg);
@@ -1566,11 +1594,19 @@ img { max-width: 100%; height: auto; }
   .category-list { flex-direction: column; flex-wrap: nowrap; gap: 0.1rem; }
   .category-item { padding: 0.6rem 0.75rem; font-size: 0.85rem; }
 
-  .feed { padding: 0.75rem; }
+  .feed {
+    padding: 0.75rem;
+    max-width: none;
+  }
   .feed-toolbar {
-    padding: 0.9rem 0.75rem;
-    margin: -0.75rem -0.75rem 0.75rem;
+    padding: 0.75rem 0 0.75rem;
+    margin: 0 0 0.5rem;
     gap: 0.5rem;
+    position: static;
+    border-bottom: 1px solid var(--border);
+  }
+  .feed-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .post-card { padding: 1rem; }
@@ -1604,14 +1640,16 @@ img { max-width: 100%; height: auto; }
 
   .toast { bottom: 1rem; right: 1rem; left: 1rem; text-align: center; }
 
-  /* Mobile category bar */
+  /* Mobile category bar — pinned below the sticky header while scrolling */
   .mobile-category-bar {
     display: flex;
+    position: -webkit-sticky;
     position: sticky;
     top: var(--header-height, 53px);
-    z-index: 90;
+    z-index: 95;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
+    box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.55);
     padding: 0.5rem 1rem;
     gap: 0.4rem;
     overflow-x: auto;
@@ -1967,6 +2005,74 @@ img { max-width: 100%; height: auto; }
     transition-duration: 0.001ms !important;
   }
   .post-card { animation: none; }
+}
+
+
+/* === FEED SORT TOGGLE === */
+.feed-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+  background: var(--bg-card);
+}
+.feed-sort-btn {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  transition: all 0.15s;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.feed-sort-btn:hover { color: var(--text); }
+.feed-sort-btn.is-active {
+  background: var(--red);
+  color: #fff;
+}
+.feed-sort-btn.is-active:hover { color: #fff; }
+.feed-sort-btn .feed-sort-icon {
+  font-size: 0.82rem;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+/* Post meta: like count badge */
+.post-likes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--text-muted);
+}
+.post-likes svg { flex-shrink: 0; }
+
+/* Reorganize feed-toolbar row: search left, toggle + meta right */
+.feed-toolbar {
+  justify-content: space-between;
+}
+.feed-toolbar-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 520px) {
+  .feed-sort-btn {
+    font-size: 0.62rem;
+    padding: 0.3rem 0.65rem;
+  }
 }
 
 /* ==========================================================================
