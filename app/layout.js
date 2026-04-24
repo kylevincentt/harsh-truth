@@ -7,9 +7,9 @@ export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: 'HARSH TRUTH',
-    template: '%s · HARSH TRUTH',
+    template: '%s Â· HARSH TRUTH',
   },
-  description: 'A human-curated feed of posts worth preserving. No algorithm. Just curation.',
+  description: 'The receipts, organized. A human-curated feed of harsh truths worth preserving.',
   applicationName: 'HARSH TRUTH',
   keywords: ['curation', 'news', 'commentary', 'curated feed', 'no algorithm'],
   authors: [{ name: 'HARSH TRUTH' }],
@@ -20,13 +20,13 @@ export const metadata = {
     url: SITE_URL,
     siteName: 'HARSH TRUTH',
     title: 'HARSH TRUTH',
-    description: 'A human-curated feed of posts worth preserving. No algorithm. Just curation.',
+    description: 'The receipts, organized. A human-curated feed of harsh truths worth preserving.',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'HARSH TRUTH',
-    description: 'A human-curated feed of posts worth preserving. No algorithm. Just curation.',
+    description: 'The receipts, organized. A human-curated feed of harsh truths worth preserving.',
   },
   robots: {
     index: true,
