@@ -8,6 +8,7 @@ async function fetchTweetData(postUrl) {
 
   let text = null;
   let imageUrl = null;
+  let likeCount = null;
 
   // Fetch tweet text via Twitter oEmbed API (free, no auth required)
   try {
@@ -55,10 +56,14 @@ async function fetchTweetData(postUrl) {
       if (!text && data.text) {
         text = data.text;
       }
+      // Capture like count (favorite_count) from syndication payload
+      if (typeof data.favorite_count === 'number') {
+        likeCount = data.favorite_count;
+      }
     }
   } catch (_) {}
 
-  return { text, imageUrl };
+  return { text, imageUrl, likeCount };
 }
 
 export async function POST(request) {
@@ -88,8 +93,8 @@ export async function POST(request) {
   const now = new Date();
   const dateLabel = `${months[now.getMonth()]} ${now.getFullYear()}`;
 
-  // Fetch real tweet text and image
-  const { text: tweetText, imageUrl } = await fetchTweetData(submission.post_url);
+  // Fetch real tweet text, image, and like count
+  const { text: tweetText, imageUrl, likeCount } = await fetchTweetData(submission.post_url);
 
   const baseInsert = {
     handle,
@@ -99,13 +104,19 @@ export async function POST(request) {
     date_label: dateLabel,
   };
 
-  // Insert into approved_posts (with image_url if available)
-  let { error: insertError } = await supabase.from('approved_posts').insert({
+  // Insert into approved_posts (with image_url + like_count when columns exist)
+  let insertPayload = {
     ...baseInsert,
     image_url: imageUrl || null,
-  });
+    like_count: typeof likeCount === 'number' ? likeCount : null,
+  };
+  let { error: insertError } = await supabase.from('approved_posts').insert(insertPayload);
 
-  // If image_url column doesn't exist yet, retry without it
+  // Gracefully retry without optional columns if the schema is out of date
+  if (insertError?.message?.includes('like_count')) {
+    insertPayload = { ...baseInsert, image_url: imageUrl || null };
+    ({ error: insertError } = await supabase.from('approved_posts').insert(insertPayload));
+  }
   if (insertError?.message?.includes('image_url')) {
     ({ error: insertError } = await supabase.from('approved_posts').insert(baseInsert));
   }
