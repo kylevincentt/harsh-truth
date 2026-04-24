@@ -1,6 +1,6 @@
 # HARSH TRUTH — Project Documentation
 
-**Domain:** harshtruth.io
+**Domain:** harshtruth.us
 **Tagline:** "No algorithm. Just curation."
 
 A curated content platform where users submit X/Twitter posts, admins approve or reject them, and approved posts appear in a categorized public feed.
@@ -12,7 +12,7 @@ A curated content platform where users submit X/Twitter posts, admins approve or
 - **Backend/Auth/DB:** Supabase (`@supabase/supabase-js` 2.45.0, `@supabase/ssr` 0.10.0)
 - **Styling:** Global CSS with CSS custom properties (no Tailwind, no CSS modules)
 - **Fonts:** Bebas Neue (headings), IBM Plex Mono (UI/labels), Libre Baskerville (body)
-- **Deployment:** (pending — domain `harshtruth.io` purchased, not yet connected)
+- **Deployment:** (pending — domain `harshtruth.us` purchased, not yet connected)
 
 ## Directory Structure
 
