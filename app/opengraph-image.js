@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'HARSH TRUTH — No algorithm. Just curation.';
+export const alt = 'HARSH TRUTH â The receipts, organized.';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -46,7 +46,7 @@ export default async function OgImage() {
           fontSize: 30,
           letterSpacing: 4,
           color: '#c8bbb0',
-        }}>NO ALGORITHM. JUST CURATION.</div>
+        }}>THE RECEIPTS, ORGANIZED.</div>
         <div style={{
           position: 'absolute', bottom: 0, left: 0, right: 0, height: 4,
           background: '#c9943a',
