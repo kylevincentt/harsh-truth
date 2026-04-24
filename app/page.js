@@ -63,6 +63,7 @@ function Home() {
   const [posts, setPosts] = useState([]);
   const [categories, setCategories] = useState(FALLBACK_CATEGORIES);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('latest'); // 'latest' | 'popular'
   const [showModal, setShowModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -147,6 +148,12 @@ function Home() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Refetch whenever the user toggles Latest/Popular
+  useEffect(() => {
+    fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy]);
+
   // Keyboard shortcut: "/" focuses search (unless user is already typing in an input).
   useEffect(() => {
     function onKey(e) {
@@ -166,12 +173,30 @@ function Home() {
   async function fetchPosts() {
     setLoading(true);
     setLoadError(false);
-    const { data, error } = await supabase
-      .from('approved_posts')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let query = supabase.from('approved_posts').select('*');
+    if (sortBy === 'popular') {
+      // like_count may not be present on every row (older posts); nullsFirst: false keeps them at the bottom.
+      query = query
+        .order('like_count', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+    const { data, error } = await query;
 
     if (error) {
+      // Fallback: if like_count column doesn't exist yet, retry with created_at only
+      if (sortBy === 'popular') {
+        const fb = await supabase
+          .from('approved_posts')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!fb.error && fb.data) {
+          setPosts(fb.data);
+          setLoading(false);
+          return;
+        }
+      }
       setLoadError(true);
     } else if (data) {
       setPosts(data);
@@ -403,27 +428,50 @@ function Home() {
               />
               <kbd className="feed-search-kbd" aria-hidden="true">/</kbd>
             </div>
-            <div className="feed-meta">
-              {activeCategory !== 'All' && (
-                <span className="feed-meta-chip">
-                  {activeCategory}
-                  <button
-                    className="feed-meta-clear"
-                    onClick={() => setActiveCategory('All')}
-                    aria-label={`Clear ${activeCategory} filter`}
-                  >
-                    ×
-                  </button>
+            <div className="feed-toolbar-right">
+              <div className="feed-sort" role="tablist" aria-label="Sort posts">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={sortBy === 'latest'}
+                  className={`feed-sort-btn${sortBy === 'latest' ? ' is-active' : ''}`}
+                  onClick={() => setSortBy('latest')}
+                >
+                  Latest
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={sortBy === 'popular'}
+                  className={`feed-sort-btn${sortBy === 'popular' ? ' is-active' : ''}`}
+                  onClick={() => setSortBy('popular')}
+                >
+                  <span className="feed-sort-icon" aria-hidden="true">♥</span>
+                  Popular
+                </button>
+              </div>
+              <div className="feed-meta">
+                {activeCategory !== 'All' && (
+                  <span className="feed-meta-chip">
+                    {activeCategory}
+                    <button
+                      className="feed-meta-clear"
+                      onClick={() => setActiveCategory('All')}
+                      aria-label={`Clear ${activeCategory} filter`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+                <span className="feed-meta-count">
+                  {loading ? '—' : `${filteredPosts.length} / ${totalCount}`}
                 </span>
-              )}
-              <span className="feed-meta-count">
-                {loading ? '—' : `${filteredPosts.length} / ${totalCount}`}
-              </span>
+              </div>
             </div>
           </div>
 
           {loading ? (
-            <div className="feed-skeleton">
+            <div className="feed-grid feed-skeleton">
               {Array.from({ length: 4 }).map((_, i) => (
                 <SkeletonCard key={i} />
               ))}
@@ -456,9 +504,11 @@ function Home() {
               )}
             </div>
           ) : (
-            filteredPosts.map((post, i) => (
-              <PostCard key={post.id} post={post} index={i} />
-            ))
+            <div className="feed-grid">
+              {filteredPosts.map((post, i) => (
+                <PostCard key={post.id} post={post} index={i} />
+              ))}
+            </div>
           )}
         </main>
       </div>
@@ -526,6 +576,14 @@ function PostCard({ post, index }) {
         <span className="post-category">{post.category}</span>
         <span className="post-date">{post.date_label}</span>
       </div>
+      {typeof post.like_count === 'number' && post.like_count > 0 && (
+        <div className="post-likes" aria-label={`${post.like_count.toLocaleString()} likes on X`}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6C19 16.5 12 21 12 21z"/>
+          </svg>
+          {post.like_count.toLocaleString()}
+        </div>
+      )}
       <p className="post-text">{post.post_text}</p>
       {post.image_url && (
         <img
