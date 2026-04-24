@@ -286,7 +286,7 @@ function Home() {
           <span></span>
           <span></span>
         </button>
-        <Link href="/" className="header-brand" aria-label="HARSH TRUTH â home">
+        <Link href="/" className="header-brand" aria-label="HARSH TRUTH — home">
           <span className="header-title">HARSH TRUTH</span>
           <span className="header-tagline">&ldquo;The receipts, organized.&rdquo;</span>
         </Link>
@@ -392,7 +392,7 @@ function Home() {
 
           <div className="sidebar-footer">
             <Link href="/about" className="sidebar-footer-link">About</Link>
-            <span className="sidebar-footer-dot">Â·</span>
+            <span className="sidebar-footer-dot">·</span>
             <span className="sidebar-footer-count">
               {totalCount} {totalCount === 1 ? 'post' : 'posts'}
             </span>
@@ -420,7 +420,7 @@ function Home() {
                 id="feed-search"
                 className="feed-search-input"
                 type="search"
-                placeholder="Search postsâ¦"
+                placeholder="Search posts…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 autoComplete="off"
@@ -446,7 +446,7 @@ function Home() {
                   className={`feed-sort-btn${sortBy === 'popular' ? ' is-active' : ''}`}
                   onClick={() => setSortBy('popular')}
                 >
-                  <span className="feed-sort-icon" aria-hidden="true">â¥</span>
+                  <span className="feed-sort-icon" aria-hidden="true">♥</span>
                   Popular
                 </button>
               </div>
@@ -459,12 +459,12 @@ function Home() {
                       onClick={() => setActiveCategory('All')}
                       aria-label={`Clear ${activeCategory} filter`}
                     >
-                      Ã
+                      ×
                     </button>
                   </span>
                 )}
                 <span className="feed-meta-count">
-                  {loading ? 'â' : `${filteredPosts.length} / ${totalCount}`}
+                  {loading ? '—' : `${filteredPosts.length} / ${totalCount}`}
                 </span>
               </div>
             </div>
@@ -486,13 +486,13 @@ function Home() {
             </div>
           ) : filteredPosts.length === 0 ? (
             <div className="feed-empty">
-              <div className="feed-empty-icon" aria-hidden="true">â</div>
+              <div className="feed-empty-icon" aria-hidden="true">—</div>
               <div className="feed-empty-title">
                 {normalizedQuery
                   ? 'No posts match that search.'
                   : activeCategory === 'All'
                   ? 'No posts yet.'
-                  : `Nothing in â${activeCategory}â yet.`}
+                  : `Nothing in “${activeCategory}” yet.`}
               </div>
               {(normalizedQuery || activeCategory !== 'All') && (
                 <button
@@ -585,7 +585,7 @@ function PostCard({ post, index }) {
 
   async function handleShare() {
     const shareData = {
-      title: `HARSH TRUTH â ${post.handle || 'Post'}`,
+      title: `HARSH TRUTH — ${post.handle || 'Post'}`,
       text: post.post_text ? post.post_text.slice(0, 140) : '',
       url: post.post_url || (typeof window !== 'undefined' ? window.location.href : ''),
     };
@@ -598,7 +598,7 @@ function PostCard({ post, index }) {
         setTimeout(() => setShared(false), 1500);
       }
     } catch {
-      /* user cancelled share or permission denied â silent */
+      /* user cancelled share or permission denied — silent */
     }
   }
 
@@ -641,7 +641,9 @@ function PostCard({ post, index }) {
           See less
         </button>
       )}
-      {post.image_url && (    src={post.image_url}
+      {post.image_url && (
+        <img
+          src={post.image_url}
           alt={`Image attached to post by ${post.handle || 'unknown'}`}
           className="post-image"
           loading="lazy"
@@ -742,7 +744,7 @@ function GoogleIcon() {
   );
 }
 
-// Shared modal shell â provides overlay, Escape handling, scroll lock, close button.
+// Shared modal shell — provides overlay, Escape handling, scroll lock, close button.
 function ModalShell({ title, onClose, restoreRef, children, labelledBy }) {
   const contentRef = useRef(null);
   useBodyScrollLock(true);
@@ -795,7 +797,7 @@ function ModalShell({ title, onClose, restoreRef, children, labelledBy }) {
 function AuthModal({ onClose, restoreRef }) {
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
-  cons[password, setPassword] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -833,7 +835,7 @@ function AuthModal({ onClose, restoreRef }) {
   async function handleForgotPassword() {
     setError('');
     if (!email) {
-      setError('Enter your email above first, then tap âForgot passwordâ.');
+      setError('Enter your email above first, then tap “Forgot password”.');
       return;
     }
     setAuthLoading(true);
@@ -947,7 +949,7 @@ function AuthModal({ onClose, restoreRef }) {
             id="auth-password"
             className="form-input"
             type="password"
-            placeholder={mode === 'signup' ? 'Min. 6 characters' : 'â¢â¢â¢â¢â¢â¢â¢â¢'}
+            placeholder={mode === 'signup' ? 'Min. 6 characters' : '••••••••'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -964,7 +966,7 @@ function AuthModal({ onClose, restoreRef }) {
           </button>
           <button type="submit" className="btn-submit" disabled={authLoading}>
             {authLoading
-              ? 'Loadingâ¦'
+              ? 'Loading…'
               : mode === 'signin'
               ? 'Sign In'
               : 'Sign Up'}
@@ -978,7 +980,8 @@ function AuthModal({ onClose, restoreRef }) {
 function SubmissionModal({ onClose, user, categories, restoreRef }) {
   const [url, setUrl] = useState('');
   const [category, setCategory] = useState('');
-  const [handle, setHandle] = ur_metadata?.user_name ? `@${user.user_metadata.user_name}` : ''
+  const [handle, setHandle] = useState(
+    user?.user_metadata?.user_name ? `@${user.user_metadata.user_name}` : ''
   );
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
@@ -996,7 +999,7 @@ function SubmissionModal({ onClose, user, categories, restoreRef }) {
       return;
     }
     if (!urlPattern.test(url)) {
-      setError('Please enter a valid X/Twitter post URL (e.g. https://x.com/user/status/123â¦).');
+      setError('Please enter a valid X/Twitter post URL (e.g. https://x.com/user/status/123…).');
       return;
     }
 
@@ -1053,7 +1056,7 @@ function SubmissionModal({ onClose, user, categories, restoreRef }) {
             id="sub-url"
             className="form-input"
             type="url"
-            placeholder="https://x.com/username/status/123â¦"
+            placeholder="https://x.com/username/status/123…"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             autoComplete="url"
@@ -1092,7 +1095,7 @@ function SubmissionModal({ onClose, user, categories, restoreRef }) {
           <textarea
             id="sub-note"
             className="form-textarea"
-            placeholder="Brief note on why this post mattersâ¦"
+            placeholder="Brief note on why this post matters…"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={500}
@@ -1109,7 +1112,7 @@ function SubmissionModal({ onClose, user, categories, restoreRef }) {
             Cancel
           </button>
           <button type="submit" className="btn-submit" disabled={submitting}>
-            {submitting ? 'Submittingâ¦' : 'Submit for Review'}
+            {submitting ? 'Submitting…' : 'Submit for Review'}
           </button>
         </div>
       </form>
