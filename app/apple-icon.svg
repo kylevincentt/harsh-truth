@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <rect width="180" height="180" rx="32" fill="#1c1814"/>
+  <text x="90" y="118"
+        text-anchor="middle"
+        font-family="'Bebas Neue', Impact, 'Arial Narrow', sans-serif"
+        font-size="104"
+        font-weight="700"
+        letter-spacing="3"
+        fill="#c47a3a">HT</text>
+  <rect x="32" y="140" width="116" height="7" fill="#c9943a"/>
+</svg>
