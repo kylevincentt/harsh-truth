@@ -3,11 +3,11 @@ import Link from 'next/link';
 export const metadata = {
   title: 'About',
   description:
-    'HARSH TRUTH is a human-curated feed of posts worth preserving. No algorithm. Just curation.',
+    'HARSH TRUTH — the receipts, organized. The country-killing truths kept where you can find them.',
   alternates: { canonical: 'https://harshtruth.us/about' },
   openGraph: {
     title: 'About HARSH TRUTH',
-    description: 'Human-curated, no algorithm.',
+    description: 'The receipts, organized.',
     url: 'https://harshtruth.us/about',
   },
 };
@@ -27,66 +27,60 @@ export default function AboutPage() {
 
       <main className="about-wrap">
         <div className="about-eyebrow">About</div>
-        <h1 className="about-title">No algorithm. Just curation.</h1>
+        <h1 className="about-title">The receipts, organized.</h1>
         <p className="about-subtitle">
-          A small feed of posts a human decided were worth keeping.
+          The most important, country-killing truths &mdash; kept where you can find them.
         </p>
 
         <section className="about-section">
-          <h2>The idea</h2>
+          <h2>Why this exists</h2>
           <p>
-            Most feeds are engagement machines — what surfaces is what keeps
-            you scrolling, not what&rsquo;s worth reading. HARSH TRUTH is the
-            opposite: posts show up here because a person looked at them and
-            said &ldquo;this should be saved.&rdquo;
+            The truth doesn&rsquo;t travel well. The outlets your friends and
+            family actually watch won&rsquo;t touch the stories that matter
+            most. The posts that do break through on X scroll past in a day and
+            disappear.
           </p>
           <p>
-            Nothing goes on the feed automatically. Every item is reviewed,
-            categorized, and published by hand.
-          </p>
-        </section>
-
-        <hr className="about-rule" />
-
-        <section className="about-section">
-          <h2>How it works</h2>
-          <ol>
-            <li>
-              Anyone with an account can submit a post URL (X or Twitter) along
-              with a category and an optional note.
-            </li>
-            <li>
-              Submissions land in a moderation queue where they&rsquo;re read
-              and either approved or rejected.
-            </li>
-            <li>
-              Approved posts appear on the public feed, filterable by category.
-            </li>
-          </ol>
-        </section>
-
-        <hr className="about-rule" />
-
-        <section className="about-section">
-          <h2>What we publish</h2>
-          <p>
-            We don&rsquo;t chase breaking news. Posts end up here because they
-            make a point that holds up &mdash; a data point, a receipt, an
-            argument, a piece of record worth referencing later. Categories
-            cover what&rsquo;s actually being submitted, and that mix shifts
-            over time.
+            This is where those stories get kept &mdash; pulled off X, sorted
+            by category, waiting for the next time you need them.
           </p>
         </section>
 
         <hr className="about-rule" />
 
         <section className="about-section">
-          <h2>Submit a post</h2>
+          <h2>Who this is for</h2>
           <p>
-            Found something worth preserving? Sign in on the feed and hit
-            &ldquo;Submit a Post.&rdquo; Paste the X/Twitter URL, pick a
-            category, and leave a note explaining why it matters. It&rsquo;ll
-            show up in the queue for review.
+            Anyone who&rsquo;s tried to have an honest conversation with a
+            liberal coworker, a skeptical friend, or a boomer parent who gets
+            their news from cable &mdash; and walked away thinking,{' '}
+            <em>I know there was a story about this, I just can&rsquo;t
+            remember where.</em>
+          </p>
+          <p>
+            HARSH TRUTH is where you go back. Evidence, at hand. Receipts,
+            organized.
+          </p>
+        </section>
+
+        <hr className="about-rule" />
+
+        <section className="about-section">
+          <h2>What&rsquo;s here</h2>
+          <p>
+            Not breaking news. Not hot takes. The harsh truths that actually
+            shape the country &mdash; filed by category, so you can go find
+            the one you need.
+          </p>
+        </section>
+
+        <hr className="about-rule" />
+
+        <section className="about-section">
+          <h2>Contribute</h2>
+          <p>
+            Saw something on X that&rsquo;s too important to let vanish? Send
+            it in.
           </p>
           <Link href="/" className="about-cta">Back to the feed</Link>
         </section>
