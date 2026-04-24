@@ -286,9 +286,9 @@ function Home() {
           <span></span>
           <span></span>
         </button>
-        <Link href="/" className="header-brand" aria-label="HARSH TRUTH — home">
+        <Link href="/" className="header-brand" aria-label="HARSH TRUTH â home">
           <span className="header-title">HARSH TRUTH</span>
-          <span className="header-tagline">&ldquo;No algorithm. Just curation.&rdquo;</span>
+          <span className="header-tagline">&ldquo;The receipts, organized.&rdquo;</span>
         </Link>
         <nav className="header-right" aria-label="Primary">
           <Link href="/about" className="header-nav-link">About</Link>
@@ -392,7 +392,7 @@ function Home() {
 
           <div className="sidebar-footer">
             <Link href="/about" className="sidebar-footer-link">About</Link>
-            <span className="sidebar-footer-dot">·</span>
+            <span className="sidebar-footer-dot">Â·</span>
             <span className="sidebar-footer-count">
               {totalCount} {totalCount === 1 ? 'post' : 'posts'}
             </span>
@@ -420,7 +420,7 @@ function Home() {
                 id="feed-search"
                 className="feed-search-input"
                 type="search"
-                placeholder="Search posts…"
+                placeholder="Search postsâ¦"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 autoComplete="off"
@@ -446,7 +446,7 @@ function Home() {
                   className={`feed-sort-btn${sortBy === 'popular' ? ' is-active' : ''}`}
                   onClick={() => setSortBy('popular')}
                 >
-                  <span className="feed-sort-icon" aria-hidden="true">♥</span>
+                  <span className="feed-sort-icon" aria-hidden="true">â¥</span>
                   Popular
                 </button>
               </div>
@@ -459,12 +459,12 @@ function Home() {
                       onClick={() => setActiveCategory('All')}
                       aria-label={`Clear ${activeCategory} filter`}
                     >
-                      ×
+                      Ã
                     </button>
                   </span>
                 )}
                 <span className="feed-meta-count">
-                  {loading ? '—' : `${filteredPosts.length} / ${totalCount}`}
+                  {loading ? 'â' : `${filteredPosts.length} / ${totalCount}`}
                 </span>
               </div>
             </div>
@@ -486,13 +486,13 @@ function Home() {
             </div>
           ) : filteredPosts.length === 0 ? (
             <div className="feed-empty">
-              <div className="feed-empty-icon" aria-hidden="true">—</div>
+              <div className="feed-empty-icon" aria-hidden="true">â</div>
               <div className="feed-empty-title">
                 {normalizedQuery
                   ? 'No posts match that search.'
                   : activeCategory === 'All'
                   ? 'No posts yet.'
-                  : `Nothing in “${activeCategory}” yet.`}
+                  : `Nothing in â${activeCategory}â yet.`}
               </div>
               {(normalizedQuery || activeCategory !== 'All') && (
                 <button
@@ -544,12 +544,48 @@ function SkeletonCard() {
   );
 }
 
+// Format integers X-style: 1234 -> 1.2K, 1_500_000 -> 1.5M.
+function formatCount(n) {
+  if (typeof n !== 'number' || !isFinite(n)) return null;
+  if (n < 1000) return n.toLocaleString();
+  if (n < 1_000_000) {
+    const v = n / 1000;
+    return (v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, '')) + 'K';
+  }
+  const v = n / 1_000_000;
+  return (v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, '')) + 'M';
+}
+
 function PostCard({ post, index }) {
   const [shared, setShared] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+  const textRef = useRef(null);
+
+  // Detect whether post text is long enough to require a "See more" toggle.
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    const measure = () => {
+      // When NOT expanded the element is line-clamped; scrollHeight exceeds
+      // clientHeight when there's hidden content underneath.
+      const clamped = el.scrollHeight - el.clientHeight > 2;
+      setIsClamped(clamped);
+    };
+    measure();
+    // Re-measure on window resize (column width changes, font load, etc.)
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    if (ro) ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+      if (ro) ro.disconnect();
+    };
+  }, [post.post_text, expanded]);
 
   async function handleShare() {
     const shareData = {
-      title: `HARSH TRUTH — ${post.handle || 'Post'}`,
+      title: `HARSH TRUTH â ${post.handle || 'Post'}`,
       text: post.post_text ? post.post_text.slice(0, 140) : '',
       url: post.post_url || (typeof window !== 'undefined' ? window.location.href : ''),
     };
@@ -562,9 +598,14 @@ function PostCard({ post, index }) {
         setTimeout(() => setShared(false), 1500);
       }
     } catch {
-      /* user cancelled share or permission denied — silent */
+      /* user cancelled share or permission denied â silent */
     }
   }
+
+  const reposts = formatCount(post.repost_count);
+  const likes = formatCount(post.like_count);
+  const views = formatCount(post.view_count);
+  const hasMetrics = reposts || likes || views;
 
   return (
     <article
@@ -576,23 +617,70 @@ function PostCard({ post, index }) {
         <span className="post-category">{post.category}</span>
         <span className="post-date">{post.date_label}</span>
       </div>
-      {typeof post.like_count === 'number' && post.like_count > 0 && (
-        <div className="post-likes" aria-label={`${post.like_count.toLocaleString()} likes on X`}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6C19 16.5 12 21 12 21z"/>
-          </svg>
-          {post.like_count.toLocaleString()}
-        </div>
+      <div
+        ref={textRef}
+        className={`post-text${expanded ? ' is-expanded' : ''}`}
+      >
+        {post.post_text}
+      </div>
+      {isClamped && !expanded && (
+        <button
+          type="button"
+          className="post-see-more"
+          onClick={() => setExpanded(true)}
+        >
+          See more
+        </button>
       )}
-      <p className="post-text">{post.post_text}</p>
-      {post.image_url && (
-        <img
-          src={post.image_url}
+      {expanded && (
+        <button
+          type="button"
+          className="post-see-more"
+          onClick={() => setExpanded(false)}
+        >
+          See less
+        </button>
+      )}
+      {post.image_url && (    src={post.image_url}
           alt={`Image attached to post by ${post.handle || 'unknown'}`}
           className="post-image"
           loading="lazy"
           decoding="async"
         />
+      )}
+      {hasMetrics && (
+        <div className="post-metrics" aria-label="Post metrics from X">
+          {reposts && (
+            <span className="post-metric" title={`${post.repost_count.toLocaleString()} reposts`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="17 1 21 5 17 9"/>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                <polyline points="7 23 3 19 7 15"/>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+              </svg>
+              {reposts}
+            </span>
+          )}
+          {likes && (
+            <span className="post-metric" title={`${post.like_count.toLocaleString()} likes`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6C19 16.5 12 21 12 21z"/>
+              </svg>
+              {likes}
+            </span>
+          )}
+          {views && (
+            <span className="post-metric" title={`${post.view_count.toLocaleString()} views`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="4" y1="20" x2="4" y2="12"/>
+                <line x1="10" y1="20" x2="10" y2="6"/>
+                <line x1="16" y1="20" x2="16" y2="14"/>
+                <line x1="22" y1="20" x2="22" y2="9"/>
+              </svg>
+              {views}
+            </span>
+          )}
+        </div>
       )}
       <div className="post-footer">
         <button
@@ -654,7 +742,7 @@ function GoogleIcon() {
   );
 }
 
-// Shared modal shell — provides overlay, Escape handling, scroll lock, close button.
+// Shared modal shell â provides overlay, Escape handling, scroll lock, close button.
 function ModalShell({ title, onClose, restoreRef, children, labelledBy }) {
   const contentRef = useRef(null);
   useBodyScrollLock(true);
@@ -707,7 +795,7 @@ function ModalShell({ title, onClose, restoreRef, children, labelledBy }) {
 function AuthModal({ onClose, restoreRef }) {
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  cons[password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -745,7 +833,7 @@ function AuthModal({ onClose, restoreRef }) {
   async function handleForgotPassword() {
     setError('');
     if (!email) {
-      setError('Enter your email above first, then tap “Forgot password”.');
+      setError('Enter your email above first, then tap âForgot passwordâ.');
       return;
     }
     setAuthLoading(true);
@@ -859,7 +947,7 @@ function AuthModal({ onClose, restoreRef }) {
             id="auth-password"
             className="form-input"
             type="password"
-            placeholder={mode === 'signup' ? 'Min. 6 characters' : '••••••••'}
+            placeholder={mode === 'signup' ? 'Min. 6 characters' : 'â¢â¢â¢â¢â¢â¢â¢â¢'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -876,7 +964,7 @@ function AuthModal({ onClose, restoreRef }) {
           </button>
           <button type="submit" className="btn-submit" disabled={authLoading}>
             {authLoading
-              ? 'Loading…'
+              ? 'Loadingâ¦'
               : mode === 'signin'
               ? 'Sign In'
               : 'Sign Up'}
@@ -890,8 +978,7 @@ function AuthModal({ onClose, restoreRef }) {
 function SubmissionModal({ onClose, user, categories, restoreRef }) {
   const [url, setUrl] = useState('');
   const [category, setCategory] = useState('');
-  const [handle, setHandle] = useState(
-    user?.user_metadata?.user_name ? `@${user.user_metadata.user_name}` : ''
+  const [handle, setHandle] = ur_metadata?.user_name ? `@${user.user_metadata.user_name}` : ''
   );
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
@@ -909,7 +996,7 @@ function SubmissionModal({ onClose, user, categories, restoreRef }) {
       return;
     }
     if (!urlPattern.test(url)) {
-      setError('Please enter a valid X/Twitter post URL (e.g. https://x.com/user/status/123…).');
+      setError('Please enter a valid X/Twitter post URL (e.g. https://x.com/user/status/123â¦).');
       return;
     }
 
@@ -966,7 +1053,7 @@ function SubmissionModal({ onClose, user, categories, restoreRef }) {
             id="sub-url"
             className="form-input"
             type="url"
-            placeholder="https://x.com/username/status/123…"
+            placeholder="https://x.com/username/status/123â¦"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             autoComplete="url"
@@ -1005,7 +1092,7 @@ function SubmissionModal({ onClose, user, categories, restoreRef }) {
           <textarea
             id="sub-note"
             className="form-textarea"
-            placeholder="Brief note on why this post matters…"
+            placeholder="Brief note on why this post mattersâ¦"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={500}
@@ -1022,7 +1109,7 @@ function SubmissionModal({ onClose, user, categories, restoreRef }) {
             Cancel
           </button>
           <button type="submit" className="btn-submit" disabled={submitting}>
-            {submitting ? 'Submitting…' : 'Submit for Review'}
+            {submitting ? 'Submittingâ¦' : 'Submit for Review'}
           </button>
         </div>
       </form>
