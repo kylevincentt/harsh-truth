@@ -255,9 +255,15 @@ function Home() {
     return () => document.removeEventListener('keydown', onKey);
   }, [sidebarOpen]);
 
+  // Hide posts whose tweet has gone away (deleted / suspended / private). The
+  // X import flow stores literal "(unavailable)" as post_text in those cases;
+  // we never want those visible on the public feed. Posts with media still
+  // render even if text is missing — the image/video carries the meaning.
+  const visiblePosts = posts.filter((p) => !isUnavailable(p));
+
   // Filter by category + full-text search
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredPosts = posts.filter((p) => {
+  const filteredPosts = visiblePosts.filter((p) => {
     if (activeCategory !== 'All' && p.category !== activeCategory) return false;
     if (!normalizedQuery) return true;
     const hay = `${p.handle || ''} ${p.post_text || ''} ${p.category || ''}`.toLowerCase();
@@ -265,11 +271,11 @@ function Home() {
   });
 
   const categoryCounts = categories.reduce((acc, cat) => {
-    acc[cat] = cat === 'All' ? posts.length : posts.filter((p) => p.category === cat).length;
+    acc[cat] = cat === 'All' ? visiblePosts.length : visiblePosts.filter((p) => p.category === cat).length;
     return acc;
   }, {});
 
-  const totalCount = posts.length;
+  const totalCount = visiblePosts.length;
 
   return (
     <>
@@ -544,6 +550,27 @@ function SkeletonCard() {
   );
 }
 
+// Treat a post as unavailable when the X import flow couldn't reach the
+// original tweet. We mirror the heuristic in lib/twitter.js so the public
+// feed never shows tombstone placeholders. Posts with media but no text are
+// still considered available — the image/video carries the meaning.
+function isUnavailable(post) {
+  if (!post) return true;
+  if (post.image_url || post.video_url) return false;
+  const t = (post.post_text || '').trim().toLowerCase();
+  if (!t) return true;
+  return (
+    t === '(unavailable)' ||
+    t === 'unavailable' ||
+    t === 'tweet unavailable' ||
+    t === 'this post is unavailable' ||
+    t === 'this tweet is unavailable' ||
+    t === 'post approved from submission.' ||
+    t.startsWith('this post is unavailable') ||
+    t.startsWith('this tweet is unavailable')
+  );
+}
+
 // Format integers X-style: 1234 -> 1.2K, 1_500_000 -> 1.5M.
 function formatCount(n) {
   if (typeof n !== 'number' || !isFinite(n)) return null;
@@ -554,6 +581,54 @@ function formatCount(n) {
   }
   const v = n / 1_000_000;
   return (v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, '')) + 'M';
+}
+
+// Renders the media attached to a post. Three cases:
+//   1. video / animated_gif → <video> with poster + controls
+//   2. photo               → <img>
+//   3. nothing             → render nothing
+//
+// We treat media_type explicitly when present, but fall back to URL sniffing
+// so the component still works for older rows that pre-date the media_type
+// column.
+function PostMedia({ post }) {
+  const hasVideo = Boolean(post.video_url);
+  const hasImage = Boolean(post.image_url);
+
+  if (hasVideo) {
+    return (
+      <video
+        className="post-media post-video"
+        controls
+        playsInline
+        preload="metadata"
+        poster={post.image_url || undefined}
+        aria-label={`Video attached to post by ${post.handle || 'unknown'}`}
+      >
+        <source src={post.video_url} type="video/mp4" />
+        {/* Fallback for browsers that can't play the inline video */}
+        {post.post_url && (
+          <a href={post.post_url} target="_blank" rel="noopener noreferrer">
+            View video on X
+          </a>
+        )}
+      </video>
+    );
+  }
+
+  if (hasImage) {
+    return (
+      <img
+        src={post.image_url}
+        alt={`Image attached to post by ${post.handle || 'unknown'}`}
+        className="post-media post-image"
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  }
+
+  return null;
 }
 
 function PostCard({ post, index }) {
@@ -650,6 +725,7 @@ function PostCard({ post, index }) {
           decoding="async"
         />
       )}
+      <PostMedia post={post} />
       {hasMetrics && (
         <div className="post-metrics" aria-label="Post metrics from X">
           {reposts && (
