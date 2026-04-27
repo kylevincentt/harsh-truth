@@ -112,6 +112,13 @@ export default function AdminPage() {
   const [addingTheme, setAddingTheme] = useState(null); // { name, colors }
   const [themeDeleteConfirm, setThemeDeleteConfirm] = useState(null);
 
+  // Backfill state — lets the admin re-fetch media + text for already-approved
+  // posts (e.g. when an old import missed a video, or a tweet later became
+  // unavailable and the row needs to be flagged).
+  const [backfillHandles, setBackfillHandles] = useState('');
+  const [backfillRunning, setBackfillRunning] = useState(false);
+  const [backfillResults, setBackfillResults] = useState(null);
+
   function showToast(message, type = 'success') {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -204,7 +211,10 @@ export default function AdminPage() {
       showToast('Post approved and published.');
       fetchSubmissions();
     } else {
-      showToast('Failed to approve.', 'error');
+      const err = await res.json().catch(() => ({}));
+      // 422 from the approve route means the tweet is unavailable — surface
+      // the real reason so the admin can reject instead of guessing.
+      showToast(err.error || 'Failed to approve.', 'error');
     }
   }
 
@@ -396,6 +406,56 @@ export default function AdminPage() {
     }));
   }
 
+  async function runBackfill({ handles, onlyMissingMedia, limit }) {
+    setBackfillRunning(true);
+    setBackfillResults(null);
+    const res = await fetch('/api/admin/backfill-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        handles: handles && handles.length ? handles : undefined,
+        onlyMissingMedia,
+        limit,
+      }),
+    });
+    setBackfillRunning(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.error || 'Backfill failed.', 'error');
+      return;
+    }
+    const data = await res.json();
+    setBackfillResults(data);
+    showToast(
+      `Backfill done — ${data.updated} updated, ${data.skipped} skipped, ${data.total} checked.`
+    );
+  }
+
+  function handleBackfillSubmit(e) {
+    e.preventDefault();
+    const list = backfillHandles
+      .split(/[\s,]+/)
+      .map((h) => h.trim())
+      .filter(Boolean);
+    runBackfill({ handles: list, onlyMissingMedia: false, limit: 50 });
+  }
+
+  function handleBackfillAllMissing() {
+    runBackfill({ handles: [], onlyMissingMedia: true, limit: 200 });
+  }
+
+  // Shared: close confirmation modals with Escape
+  useEffect(() => {
+    if (!deleteConfirm && !themeDeleteConfirm) return;
+    function onKey(e) {
+      if (e.key !== 'Escape') return;
+      if (deleteConfirm) setDeleteConfirm(null);
+      if (themeDeleteConfirm) setThemeDeleteConfirm(null);
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [deleteConfirm, themeDeleteConfirm]);
+
   // Loading — waiting for session check
   if (authorized === null) {
     return (
@@ -515,6 +575,15 @@ export default function AdminPage() {
         >
           Themes
           <span className="tab-count">{themes.length}</span>
+        </button>
+        <button
+          className={`admin-tab ${activeTab === 'backfill' ? 'active' : ''}`}
+          onClick={() => setActiveTab('backfill')}
+          role="tab"
+          aria-selected={activeTab === 'backfill'}
+          type="button"
+        >
+          Backfill
         </button>
       </div>
 
@@ -828,6 +897,86 @@ export default function AdminPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === 'backfill' && (
+        <div className="cat-section">
+          <p className="cat-section-desc">
+            Re-fetch text + media for already-approved posts. Use this when an old
+            import missed a video, or a tweet later became unavailable and you want
+            the row flagged so it stops showing on the public feed.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: 720 }}>
+            <div>
+              <button
+                className="cat-add-btn"
+                onClick={handleBackfillAllMissing}
+                disabled={backfillRunning}
+              >
+                {backfillRunning ? 'Running…' : 'Backfill all posts missing media (up to 200)'}
+              </button>
+              <p className="form-helper" style={{ marginTop: '0.5rem' }}>
+                Skips posts that already have an image or video. Safe to run repeatedly.
+              </p>
+            </div>
+
+            <form className="cat-add-row" onSubmit={handleBackfillSubmit} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+              <label htmlFor="backfill-handles" className="form-label">
+                Backfill specific handles (re-fetches even if media exists)
+              </label>
+              <input
+                id="backfill-handles"
+                className="cat-add-input"
+                type="text"
+                placeholder="@TRobinsonNewEra, @Breaking911, @its_The_Dr"
+                value={backfillHandles}
+                onChange={(e) => setBackfillHandles(e.target.value)}
+              />
+              <button
+                type="submit"
+                className="cat-add-btn"
+                disabled={backfillRunning || !backfillHandles.trim()}
+                style={{ marginTop: '0.5rem' }}
+              >
+                {backfillRunning ? 'Running…' : 'Backfill these handles'}
+              </button>
+            </form>
+
+            {backfillResults && (
+              <div className="queue-item" style={{ marginTop: '1rem' }}>
+                <div className="queue-item-meta">
+                  <span className="queue-meta-item">
+                    <span className="queue-meta-label">Updated: </span>
+                    <span className="queue-meta-value">{backfillResults.updated}</span>
+                  </span>
+                  <span className="queue-meta-item">
+                    <span className="queue-meta-label">Skipped: </span>
+                    <span className="queue-meta-value">{backfillResults.skipped}</span>
+                  </span>
+                  <span className="queue-meta-item">
+                    <span className="queue-meta-label">Total checked: </span>
+                    <span className="queue-meta-value">{backfillResults.total}</span>
+                  </span>
+                </div>
+                <details style={{ marginTop: '0.75rem' }}>
+                  <summary style={{ cursor: 'pointer', color: 'var(--text-muted)' }}>
+                    Per-post results (${backfillResults.results?.length || 0})
+                  </summary>
+                  <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem', fontSize: '0.78rem' }}>
+                    {(backfillResults.results || []).map((r) => (
+                      <li key={r.id} style={{ marginBottom: '0.25rem' }}>
+                        <strong>{r.handle}</strong> — {r.status}
+                        {r.fields ? ` (${r.fields.join(', ')})` : ''}
+                        {r.error ? ` — ${r.error}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
