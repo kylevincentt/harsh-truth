@@ -782,6 +782,22 @@ img { max-width: 100%; height: auto; }
   background: var(--bg);
 }
 
+.post-video {
+  display: block;
+  width: 100%;
+  max-height: 480px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  background: #000;
+  outline: none;
+}
+/* The native controls bar already handles affordance — just give it a soft
+   surface to sit on so it doesn't clip the rounded corners. */
+.post-video::-webkit-media-controls-panel {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
 .post-footer {
   display: flex;
   justify-content: flex-end;
