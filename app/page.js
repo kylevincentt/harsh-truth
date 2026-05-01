@@ -498,7 +498,7 @@ function Home() {
                   ? 'No posts match that search.'
                   : activeCategory === 'All'
                   ? 'No posts yet.'
-                  : `Nothing in “${activeCategory}” yet.`}
+                  : `Nothing in "${activeCategory}" yet.`}
               </div>
               {(normalizedQuery || activeCategory !== 'All') && (
                 <button
@@ -716,15 +716,6 @@ function PostCard({ post, index }) {
           See less
         </button>
       )}
-      {post.image_url && (
-        <img
-          src={post.image_url}
-          alt={`Image attached to post by ${post.handle || 'unknown'}`}
-          className="post-image"
-          loading="lazy"
-          decoding="async"
-        />
-      )}
       <PostMedia post={post} />
       {hasMetrics && (
         <div className="post-metrics" aria-label="Post metrics from X">
@@ -911,7 +902,7 @@ function AuthModal({ onClose, restoreRef }) {
   async function handleForgotPassword() {
     setError('');
     if (!email) {
-      setError('Enter your email above first, then tap “Forgot password”.');
+      setError('Enter your email above first, then tap "Forgot password".');
       return;
     }
     setAuthLoading(true);
