@@ -207,7 +207,7 @@ img { max-width: 100%; height: auto; }
 .submit-hint {
   margin-top: 0.5rem;
   font-family: var(--font-body);
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   text-align: center;
   letter-spacing: 0.02em;
@@ -321,25 +321,28 @@ img { max-width: 100%; height: auto; }
 .layout {
   display: flex;
   min-height: calc(100vh - 80px);
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 /* === SIDEBAR === */
 .sidebar {
   position: sticky;
   top: 80px;
-  width: 240px;
-  min-width: 240px;
+  width: 270px;
+  min-width: 270px;
   height: calc(100vh - 80px);
   overflow: hidden;
   border-right: 1px solid var(--border);
-  padding: 1.25rem 1rem 1rem;
+  padding: 1.25rem 1.25rem 1rem;
   display: flex;
   flex-direction: column;
 }
 
 .sidebar-section-label {
   font-family: var(--font-body);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: var(--text-muted);
@@ -363,8 +366,8 @@ img { max-width: 100%; height: auto; }
 .category-item {
   width: 100%;
   font-family: var(--font-body);
-  font-size: 0.8rem;
-  padding: 0.45rem 0.7rem;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.8rem;
   border-radius: 4px;
   display: flex;
   justify-content: space-between;
@@ -390,7 +393,7 @@ img { max-width: 100%; height: auto; }
 
 .category-count {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   background: var(--bg);
   padding: 0.1rem 0.45rem;
@@ -412,7 +415,7 @@ img { max-width: 100%; height: auto; }
   align-items: center;
   gap: 0.5rem;
   font-family: var(--font-body);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 .sidebar-footer-link {
@@ -422,11 +425,11 @@ img { max-width: 100%; height: auto; }
 }
 .sidebar-footer-link:hover { color: var(--text); }
 .sidebar-footer-dot { opacity: 0.5; }
-.sidebar-footer-count { font-family: var(--font-mono); font-size: 0.64rem; }
+.sidebar-footer-count { font-family: var(--font-mono); font-size: 0.71rem; }
 
 .submit-btn {
   font-family: var(--font-body);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 600;
