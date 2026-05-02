@@ -605,7 +605,7 @@ function PostMedia({ post }) {
         poster={post.image_url || undefined}
         aria-label={`Video attached to post by ${post.handle || 'unknown'}`}
       >
-        <source src={post.video_url} type="video/mp4" />
+        <source src={`/api/video?url=${encodeURIComponent(post.video_url)}`} type="video/mp4" />
         {/* Fallback for browsers that can't play the inline video */}
         {post.post_url && (
           <a href={post.post_url} target="_blank" rel="noopener noreferrer">
