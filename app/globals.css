@@ -105,6 +105,10 @@ img { max-width: 100%; height: auto; }
   gap: 1rem;
   text-decoration: none;
   color: inherit;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .header-title {
@@ -1632,7 +1636,7 @@ img { max-width: 100%; height: auto; }
     gap: 0.5rem;
     align-items: center;
   }
-  .header-brand { flex-direction: column; gap: 0.1rem; align-items: flex-start; }
+  .header-brand { flex-direction: column; gap: 0.1rem; align-items: center; }
   .header-title { font-size: 1.6rem; }
   .header-tagline { display: none; }
   .hamburger-btn { display: flex; }
