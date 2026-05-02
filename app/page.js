@@ -552,8 +552,8 @@ function SkeletonCard() {
 
 // Treat a post as unavailable when the X import flow couldn't reach the
 // original tweet. We mirror the heuristic in lib/twitter.js so the public
-// feed never shows tombstone placeholders. Posts with media but no text are
-// still considered available — the image/video carries the meaning.
+// feed never shows tombstone placeholders. Posts with media still
+// render even if text is missing — the image/video carries the meaning.
 function isUnavailable(post) {
   if (!post) return true;
   if (post.image_url || post.video_url) return false;
@@ -638,24 +638,17 @@ function PostCard({ post, index }) {
   const textRef = useRef(null);
 
   // Detect whether post text is long enough to require a "See more" toggle.
+  // Only measure in the collapsed state — when expanded the element reports its
+  // full natural height, which would incorrectly clear isClamped and hide both
+  // buttons. The last measured value of isClamped is preserved while expanded.
   useEffect(() => {
     const el = textRef.current;
     if (!el) return;
-    const measure = () => {
-      // When NOT expanded the element is line-clamped; scrollHeight exceeds
-      // clientHeight when there's hidden content underneath.
-      const clamped = el.scrollHeight - el.clientHeight > 2;
-      setIsClamped(clamped);
-    };
-    measure();
-    // Re-measure on window resize (column width changes, font load, etc.)
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
-    if (ro) ro.observe(el);
-    window.addEventListener('resize', measure);
-    return () => {
-      window.removeEventListener('resize', measure);
-      if (ro) ro.disconnect();
-    };
+    if (expanded) return; // skip; isClamped keeps its pre-expand value
+    const check = () => setIsClamped(el.scrollHeight - el.clientHeight > 2);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, [post.post_text, expanded]);
 
   async function handleShare() {
