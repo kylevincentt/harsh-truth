@@ -54,6 +54,53 @@ Key columns on `approved_posts`:
 All migrations live in `supabase/migrations/` and must be run **manually** in
 the Supabase SQL editor (no CI/CD migration runner).
 
+## Categories (canonical list, 2026-05-07 restructure)
+
+The DB `categories` table is the source of truth — the admin UI can rename,
+reorder, and add — but this is the post-restructure baseline:
+
+| sort_order | name              | Notes                                                        |
+| ---------: | ----------------- | ------------------------------------------------------------ |
+| 1          | Immigration       | Largest active lane                                          |
+| 2          | Crime & Courts    | Renamed from Judiciary; absorbed Crime Stats                 |
+| 3          | Media             | Was "Media / Bias" — slash-form bug fixed in 20260507 migration |
+| 4          | Schools           | New (DEI in K-12, parental rights, university race cases)    |
+| 5          | Gender Ideology   | Renamed from LGBTQ                                           |
+| 6          | Islam             |                                                              |
+| 7          | Decline           | New (urban-decline, civilizational commentary)               |
+| 8          | Democrats         | Kept as-is per editorial decision                            |
+| 9          | Rigged            | Renamed from Election Integrity; tightened intake (see below)|
+| 99         | Other             | Always last, "protected" (cannot be deleted in admin UI)     |
+
+### Rigged-intake guard
+
+Per the 2026-05-07 content-strategy review, "Rigged" replaces the over-broad
+"Election Integrity" category and is reserved for actual election mechanics:
+voter fraud, ballot integrity, audit findings, gerrymandering, redistricting,
+voter ID, recounts, certification disputes.
+
+`POST /api/admin/import` enforces a soft check: if `category === 'Rigged'`
+and the fetched tweet text matches none of the election-mechanics keywords,
+the route returns 409 with `confirm_required: true`. The caller can re-send
+with `confirm_rigged: true` to override (e.g. for an investigative video that
+doesn't surface the keywords). Either way the route logs a warning.
+
+### Dropped categories (history, do not re-add casually)
+
+`Foreign Policy`, `Economy`, `Crime Stats`, `LGBTQ`, `Election Integrity`,
+`Judiciary`, `Media / Bias`, `Media Bias`. The 2026-05-07 migration
+(`supabase/migrations/20260507_category_restructure.sql`) handles the data
+transitions. Setup-DB seed list and the `FALLBACK_CATEGORIES` constant in
+`app/page.js` reflect the post-restructure names.
+
+### The "perfect post" rubric (editorial)
+
+- Required: a receipt (name, number, quote, video, document); a point;
+  durability beyond the news cycle; self-contained.
+- Anti-patterns: slur-only posts, reaction posts without substance, hot
+  takes, pure aesthetic dunks. The /about page documents the public-facing
+  version of this rule.
+
 ## The X import flow (most-asked-about subsystem)
 
 There is **no Twitter API key**. Everything is scraped from two free,
@@ -80,6 +127,8 @@ The orchestration lives in `lib/twitter.js` → `fetchTweetData(postUrl)`. It:
 Used by:
 - `app/api/admin/approve/route.js` — on approval, fetches and inserts into
   `approved_posts`. Returns 422 if the tweet is unavailable.
+- `app/api/admin/import/route.js` — admin-only one-shot importer for bulk
+  bookmark imports. Enforces the Rigged-intake guard (see Categories above).
 - `app/api/admin/backfill-media/route.js` — admin-only POST that re-fetches
   text + media for already-approved posts. Triggered from the admin UI's
   **Backfill** tab.
