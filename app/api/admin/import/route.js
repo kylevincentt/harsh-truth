@@ -9,11 +9,13 @@ import { fetchTweetData } from '../../../../lib/twitter';
 // directly into approved_posts (no submission row needed).
 //
 // Body:
-//   { post_url: string, category: string }
+//   { post_url: string, category: string, confirm_rigged?: boolean }
 //
 // Behavior:
 //   - 401 if not admin
 //   - 400 if post_url is malformed or category is missing
+//   - 409 if category is "Rigged" but the tweet text doesn't read like
+//     an election-mechanics receipt and confirm_rigged wasn't set
 //   - 422 if the tweet is unavailable (deleted / suspended / private) so
 //     the caller can skip silently
 //   - 200 { skipped: true } if a row with this post_url already exists
@@ -22,6 +24,33 @@ import { fetchTweetData } from '../../../../lib/twitter';
 // Mirrors the enrichment + progressive-payload pattern from
 // app/api/admin/approve/route.js so newly-imported posts have text + media
 // + metrics like normal approvals.
+
+// Light editorial guard for the renamed "Rigged" lane (formerly Election
+// Integrity). The category drifted into general partisan content; per Kyle's
+// 2026-05-07 content-strategy review, Rigged should only hold receipts about
+// actual election mechanics, voter fraud, ballots, or audits. We're not
+// blocking imports — we're nudging the admin to confirm.
+const RIGGED_KEYWORDS = [
+  'election', 'elections', 'electoral',
+  'voter', 'voters', 'voting', 'vote',
+  'ballot', 'ballots',
+  'audit', 'audits',
+  'fraud',
+  'gerrymander', 'gerrymandering', 'redistrict', 'redistricting',
+  'rigged', 'rig',
+  'precinct', 'precincts',
+  'polling', 'polls', 'poll',
+  'mail-in', 'absentee',
+  'voter id',
+  'recount',
+  'certification', 'certify',
+];
+
+function looksLikeRiggedContent(text) {
+  if (!text || typeof text !== 'string') return false;
+  const lower = text.toLowerCase();
+  return RIGGED_KEYWORDS.some((kw) => lower.includes(kw));
+}
 
 export async function POST(request) {
   const admin = await getAdminUser();
@@ -38,6 +67,7 @@ export async function POST(request) {
 
   const postUrl = typeof body.post_url === 'string' ? body.post_url.trim() : '';
   const category = typeof body.category === 'string' ? body.category.trim() : '';
+  const confirmRigged = body.confirm_rigged === true;
 
   if (!postUrl || !category) {
     return NextResponse.json(
@@ -75,6 +105,35 @@ export async function POST(request) {
       { error: 'Tweet unavailable (deleted / suspended / private).' },
       { status: 422 }
     );
+  }
+
+  // Rigged-intake guard. Soft check: only reject if no keyword match AND the
+  // caller didn't pass confirm_rigged. We log a warning either way so a
+  // periodic review can catch drift.
+  if (category === 'Rigged') {
+    const matched = looksLikeRiggedContent(tweet.text || '');
+    if (!matched) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[import] Rigged-intake: post does not look like election mechanics',
+        { post_url: postUrl, confirm_rigged: confirmRigged }
+      );
+      if (!confirmRigged) {
+        return NextResponse.json(
+          {
+            error:
+              "This post doesn't read like an election-mechanics receipt. " +
+              'Rigged is reserved for actual election fraud, voter ID, ' +
+              'ballot integrity, audit findings, gerrymandering, etc. ' +
+              'Re-send with `confirm_rigged: true` to override, or pick a ' +
+              'better category (Democrats, Schools, Crime & Courts, etc.).',
+            suggested_keywords: RIGGED_KEYWORDS,
+            confirm_required: true,
+          },
+          { status: 409 }
+        );
+      }
+    }
   }
 
   const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
