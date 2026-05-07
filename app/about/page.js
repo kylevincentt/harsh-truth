@@ -3,7 +3,7 @@ import Link from 'next/link';
 export const metadata = {
   title: 'About',
   description:
-    'HARSH TRUTH â the receipts, organized. The country-killing truths kept where you can find them.',
+    'HARSH TRUTH — the receipts, organized. The country-killing truths kept where you can find them.',
   alternates: { canonical: 'https://harshtruth.us/about' },
   openGraph: {
     title: 'About HARSH TRUTH',
@@ -16,7 +16,7 @@ export default function AboutPage() {
   return (
     <>
       <header className="header" role="banner">
-        <Link href="/" className="header-brand" aria-label="HARSH TRUTH â home">
+        <Link href="/" className="header-brand" aria-label="HARSH TRUTH — home">
           <span className="header-title">HARSH TRUTH</span>
           <span className="header-tagline">&ldquo;The receipts, organized.&rdquo;</span>
         </Link>

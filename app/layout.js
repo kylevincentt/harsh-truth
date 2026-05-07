@@ -1,4 +1,5 @@
 import './globals.css';
+import './mobile-fixes.css';
 import ThemeLoader from './ThemeLoader';
 
 const SITE_URL = 'https://harshtruth.us';
@@ -7,7 +8,7 @@ export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: 'HARSH TRUTH',
-    template: '%s Â· HARSH TRUTH',
+    template: '%s · HARSH TRUTH',
   },
   description: 'The receipts, organized. A human-curated feed of harsh truths worth preserving.',
   applicationName: 'HARSH TRUTH',

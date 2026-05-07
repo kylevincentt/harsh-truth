@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'HARSH TRUTH â The receipts, organized.';
+export const alt = 'HARSH TRUTH — The receipts, organized.';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 

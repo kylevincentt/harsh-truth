@@ -1,0 +1,45 @@
+/*
+ * Audit fixes — kept in their own file because globals.css is too large to
+ * round-trip through the GitHub Contents MCP write limit. Imported from
+ * app/layout.js right after globals.css so cascade order matches source order.
+ */
+
+/* ---------------------------------------------------------------- *
+ * H1 — Mobile header overlap (audit 2026-05-07)
+ *
+ * The base rule on .header-brand is `position: absolute; left: 50%;
+ * transform: translateX(-50%)`. At iPhone widths (393px and below) the
+ * absolute-centered wordmark collides with the Sign In button on the
+ * right edge of the header. Switch to static positioning so the brand
+ * flows inside the flex layout (hamburger | brand | actions) with no
+ * overlap, and tighten typography on the narrowest phones.
+ * ---------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .header-brand {
+    position: static;
+    left: auto;
+    transform: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    align-items: flex-start;
+  }
+  .header-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 393px) {
+  .header-title {
+    font-size: 1.25rem;
+    letter-spacing: 0.04em;
+  }
+  .btn-signin,
+  .btn-signout {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+    font-size: 0.7rem;
+  }
+}
