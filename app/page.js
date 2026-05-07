@@ -8,14 +8,21 @@ import Link from 'next/link';
 
 const supabase = createClient();
 
+// Canonical category list as of the 2026-05-07 restructure. The DB is the
+// source of truth — fetchCategories() replaces this on mount — but the
+// fallback is used during the brief window before that fetch returns and
+// when the admin /api/admin/categories endpoint is unreachable.
 const FALLBACK_CATEGORIES = [
   'All',
-  'Judiciary',
-  'Media / Bias',
   'Immigration',
-  'Election Integrity',
-  'Economy',
-  'Foreign Policy',
+  'Crime & Courts',
+  'Media',
+  'Schools',
+  'Gender Ideology',
+  'Islam',
+  'Decline',
+  'Democrats',
+  'Rigged',
   'Other',
 ];
 
@@ -498,7 +505,7 @@ function Home() {
                   ? 'No posts match that search.'
                   : activeCategory === 'All'
                   ? 'No posts yet.'
-                  : `Nothing in "${activeCategory}" yet.`}
+                  : `Nothing in “${activeCategory}” yet.`}
               </div>
               {(normalizedQuery || activeCategory !== 'All') && (
                 <button
@@ -552,8 +559,8 @@ function SkeletonCard() {
 
 // Treat a post as unavailable when the X import flow couldn't reach the
 // original tweet. We mirror the heuristic in lib/twitter.js so the public
-// feed never shows tombstone placeholders. Posts with media still
-// render even if text is missing — the image/video carries the meaning.
+// feed never shows tombstone placeholders. Posts with media but no text are
+// still considered available — the image/video carries the meaning.
 function isUnavailable(post) {
   if (!post) return true;
   if (post.image_url || post.video_url) return false;
@@ -895,7 +902,7 @@ function AuthModal({ onClose, restoreRef }) {
   async function handleForgotPassword() {
     setError('');
     if (!email) {
-      setError('Enter your email above first, then tap "Forgot password".');
+      setError('Enter your email above first, then tap “Forgot password”.');
       return;
     }
     setAuthLoading(true);
