@@ -1,0 +1,68 @@
+/*
+ * Post detail page styles (audit H3, 2026-05-07).
+ * Single-post permalink at /post/[id]. Reuses post-card / post-* classes
+ * from globals.css; only adds the page-level wrapper and breadcrumb.
+ */
+
+.post-detail-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.post-detail-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 1.25rem;
+}
+
+.post-detail-crumb-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.post-detail-crumb-link:hover {
+  color: var(--gold);
+}
+
+.post-detail-crumb-sep {
+  color: var(--border);
+}
+
+.post-detail-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.5rem;
+}
+
+.post-detail-card .post-text {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  margin-bottom: 1rem;
+}
+
+.post-detail-card .post-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .post-detail-wrap {
+    padding: 1rem;
+  }
+  .post-detail-card {
+    padding: 1.25rem 1rem;
+  }
+}
