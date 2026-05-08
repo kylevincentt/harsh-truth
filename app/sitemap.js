@@ -34,11 +34,18 @@ export default async function sitemap() {
         if (p.removed_at) continue;
         if (!p.image_url && !p.video_url) {
           const t = (p.post_text || '').trim().toLowerCase();
+          // Audit 2026-05-08 M1: keep this list IN SYNC with isUnavailable()
+          // in app/page.js — otherwise the sitemap and home feed drift apart
+          // and we expose URLs the home page hides ("post approved from
+          // submission." was the missing case).
           if (
             !t ||
             t === '(unavailable)' ||
             t === 'unavailable' ||
             t === 'tweet unavailable' ||
+            t === 'this post is unavailable' ||
+            t === 'this tweet is unavailable' ||
+            t === 'post approved from submission.' ||
             t.startsWith('this post is unavailable') ||
             t.startsWith('this tweet is unavailable')
           ) {
