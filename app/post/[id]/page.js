@@ -74,6 +74,95 @@ function formatCount(n) {
   return (v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, '')) + 'M';
 }
 
+// Build a SocialMediaPosting JSON-LD object for the post — gives Google
+// rich-result eligibility for shared X posts and helps it understand
+// the relationship between our curated copy and the source tweet.
+function buildJsonLd(post) {
+  const url = `${SITE_URL}/post/${post.id}`;
+  const articleBody = (post.post_text || '').slice(0, 500);
+  const datePublished = post.created_at
+    ? new Date(post.created_at).toISOString()
+    : undefined;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SocialMediaPosting',
+    headline: `${post.handle || 'Post'} — ${post.category || 'HARSH TRUTH'}`,
+    articleBody,
+    url,
+    datePublished,
+    dateModified: datePublished,
+    mainEntityOfPage: url,
+    sharedContent: post.post_url
+      ? {
+          '@type': 'WebPage',
+          url: post.post_url,
+        }
+      : undefined,
+    image: post.image_url || undefined,
+    author: post.handle
+      ? { '@type': 'Person', name: post.handle }
+      : undefined,
+    publisher: {
+      '@type': 'Organization',
+      name: 'HARSH TRUTH',
+      url: SITE_URL,
+    },
+    interactionStatistic: [
+      typeof post.like_count === 'number'
+        ? {
+            '@type': 'InteractionCounter',
+            interactionType: 'https://schema.org/LikeAction',
+            userInteractionCount: post.like_count,
+          }
+        : null,
+      typeof post.repost_count === 'number'
+        ? {
+            '@type': 'InteractionCounter',
+            interactionType: 'https://schema.org/ShareAction',
+            userInteractionCount: post.repost_count,
+          }
+        : null,
+      typeof post.view_count === 'number'
+        ? {
+            '@type': 'InteractionCounter',
+            interactionType: 'https://schema.org/ViewAction',
+            userInteractionCount: post.view_count,
+          }
+        : null,
+    ].filter(Boolean),
+  };
+}
+
+function buildBreadcrumbLd(post) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Feed',
+        item: `${SITE_URL}/`,
+      },
+      post.category
+        ? {
+            '@type': 'ListItem',
+            position: 2,
+            name: post.category,
+            item: `${SITE_URL}/?cat=${encodeURIComponent(post.category)}`,
+          }
+        : null,
+      {
+        '@type': 'ListItem',
+        position: post.category ? 3 : 2,
+        name: post.handle || 'Post',
+        item: `${SITE_URL}/post/${post.id}`,
+      },
+    ].filter(Boolean),
+  };
+}
+
 export default async function PostPage({ params }) {
   const post = await fetchPost(params.id);
   if (!post) notFound();
@@ -83,8 +172,23 @@ export default async function PostPage({ params }) {
   const views = formatCount(post.view_count);
   const hasMetrics = reposts || likes || views;
 
+  const jsonLd = buildJsonLd(post);
+  const breadcrumbLd = buildBreadcrumbLd(post);
+
   return (
     <>
+      {/* JSON-LD: SocialMediaPosting + BreadcrumbList. Inline scripts so
+          they're inside the document body (Next.js metadata API doesn't
+          support arbitrary <script type="application/ld+json"> yet). */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
+
       <header className="header" role="banner">
         <Link href="/" className="header-brand" aria-label="HARSH TRUTH — home">
           <span className="header-title">HARSH TRUTH</span>
