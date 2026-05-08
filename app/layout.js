@@ -1,5 +1,6 @@
 import './globals.css';
 import './mobile-fixes.css';
+import './audit-fixes.css';
 import ThemeLoader from './ThemeLoader';
 
 const SITE_URL = 'https://harshtruth.us';

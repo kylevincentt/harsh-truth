@@ -26,6 +26,44 @@ const FALLBACK_CATEGORIES = [
   'Other',
 ];
 
+// Twitter snowflake epoch — Nov 4, 2010 01:42:54 UTC. The Twitter ID is a
+// 64-bit value where the high 41 bits encode the creation time in
+// milliseconds since this epoch.
+const TWITTER_SNOWFLAKE_EPOCH_MS = 1288834974657n;
+
+// Audit 2026-05-08 C2: derive the post's *original* X timestamp from the
+// tweet ID embedded in post_url. We use this for LATEST sort so the H9
+// reroute posts don't dominate the lead just because they were imported
+// recently — the user-visible "when was this said" is the X timestamp,
+// not approved_posts.created_at (which is the import time).
+//
+// Returns the time in milliseconds since the Unix epoch, or null when we
+// can't parse a tweet ID out of the URL (very old rows, hand-edited URLs).
+function postedAtMs(post) {
+  if (!post || typeof post.post_url !== 'string') return null;
+  const m = post.post_url.match(/\/status\/(\d+)/);
+  if (!m) return null;
+  try {
+    const id = BigInt(m[1]);
+    return Number((id >> 22n) + TWITTER_SNOWFLAKE_EPOCH_MS);
+  } catch {
+    return null;
+  }
+}
+
+// Combine the X timestamp (preferred) with approved_posts.created_at
+// (fallback) so rows that don't parse still slot into the timeline at a
+// reasonable place.
+function sortKeyForLatest(post) {
+  const xMs = postedAtMs(post);
+  if (xMs != null) return xMs;
+  if (post && post.created_at) {
+    const t = new Date(post.created_at).getTime();
+    if (!Number.isNaN(t)) return t;
+  }
+  return 0;
+}
+
 // Small utility hook: lock body scroll while `open` is true.
 function useBodyScrollLock(open) {
   useEffect(() => {
@@ -84,6 +122,7 @@ function Home() {
   const signInBtnRef = useRef(null);
   const submitBtnRef = useRef(null);
   const hamburgerRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // When redirected with ?signin=1 (e.g. from /admin), auto-open auth modal.
   // If ?return=/some-path is also present, redirect there after successful auth.
@@ -195,7 +234,10 @@ function Home() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Refetch whenever the user toggles Latest/Popular
+  // Refetch whenever the user toggles Latest/Popular. POPULAR is sorted
+  // server-side by like_count; LATEST sort happens client-side off the
+  // tweet timestamp (see sortedPosts below) so we don't need to refetch
+  // for that.
   useEffect(() => {
     fetchPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,6 +269,10 @@ function Home() {
         .order('like_count', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
     } else {
+      // LATEST is re-sorted client-side by sortKeyForLatest() — fetch in any
+      // order that still gives a stable initial state. created_at desc means
+      // a partial sort is already most-recent-first if the snowflake parse
+      // ever fails.
       query = query.order('created_at', { ascending: false });
     }
     const { data, error } = await query;
@@ -304,13 +350,21 @@ function Home() {
 
   // Hide posts whose tweet has gone away (deleted / suspended / private). The
   // X import flow stores literal "(unavailable)" as post_text in those cases;
-  // we never want those visible on the public feed. Posts with media still
-  // render even if text is missing — the image/video carries the meaning.
+  // we never want those visible on the public feed. Posts with media but no
+  // text are still considered available — the image/video carries the meaning.
   const visiblePosts = posts.filter((p) => !isUnavailable(p));
+
+  // Audit 2026-05-08 C2: re-sort LATEST on the client by the tweet's
+  // original X timestamp, not by approved_posts.created_at. POPULAR keeps
+  // the server-side ordering (like_count desc, created_at desc tiebreak).
+  const sortedPosts =
+    sortBy === 'latest'
+      ? [...visiblePosts].sort((a, b) => sortKeyForLatest(b) - sortKeyForLatest(a))
+      : visiblePosts;
 
   // Filter by category + full-text search
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredPosts = visiblePosts.filter((p) => {
+  const filteredPosts = sortedPosts.filter((p) => {
     if (activeCategory !== 'All' && p.category !== activeCategory) return false;
     if (!normalizedQuery) return true;
     const hay = `${p.handle || ''} ${p.post_text || ''} ${p.category || ''}`.toLowerCase();
@@ -323,6 +377,23 @@ function Home() {
   }, {});
 
   const totalCount = visiblePosts.length;
+
+  // Audit 2026-05-08 M4: prevent attacker-controlled URLs from rendering an
+  // arbitrarily long uppercase pill via ?cat=NotARealCategory. Cap the
+  // displayed category text to a short length, but never modify
+  // activeCategory itself — the underlying filter logic must still match
+  // the literal string against the post.category field.
+  const displayActiveCategory =
+    activeCategory.length > 32
+      ? `${activeCategory.slice(0, 30)}…`
+      : activeCategory;
+
+  // Audit 2026-05-08 M9: visible clear-X for the search input. Reset query
+  // and return focus so keyboard users aren't stranded.
+  function handleClearSearch() {
+    setQuery('');
+    if (searchInputRef.current) searchInputRef.current.focus();
+  }
 
   return (
     <>
@@ -395,7 +466,9 @@ function Home() {
             aria-pressed={activeCategory === cat}
           >
             {cat}
-            {cat !== 'All' && categoryCounts[cat] > 0 && (
+            {/* M7: hide the tiny count badge while data is loading so a
+                fresh visitor doesn't briefly see "0" next to every category. */}
+            {cat !== 'All' && !loading && categoryCounts[cat] > 0 && (
               <span className="mobile-cat-pill-count">{categoryCounts[cat]}</span>
             )}
           </button>
@@ -437,7 +510,11 @@ function Home() {
                   aria-pressed={activeCategory === cat}
                 >
                   <span>{cat}</span>
-                  <span className="category-count">{categoryCounts[cat] || 0}</span>
+                  {/* M7: render an em-dash placeholder while loading so the
+                      sidebar doesn't show "0" next to every category for ~2s. */}
+                  <span className="category-count">
+                    {loading ? '—' : (categoryCounts[cat] || 0)}
+                  </span>
                 </button>
               </li>
             ))}
@@ -447,7 +524,9 @@ function Home() {
             <Link href="/about" className="sidebar-footer-link">About</Link>
             <span className="sidebar-footer-dot">·</span>
             <span className="sidebar-footer-count">
-              {totalCount} {totalCount === 1 ? 'post' : 'posts'}
+              {loading
+                ? '—'
+                : `${totalCount} ${totalCount === 1 ? 'post' : 'posts'}`}
             </span>
           </div>
         </aside>
@@ -478,8 +557,23 @@ function Home() {
                 onChange={(e) => setQuery(e.target.value)}
                 autoComplete="off"
                 enterKeyHint="search"
+                ref={searchInputRef}
               />
-              <kbd className="feed-search-kbd" aria-hidden="true">/</kbd>
+              {/* M9: visible clear button. Hidden when the field is empty so
+                  the "/" keyboard hint can sit there instead. */}
+              {query ? (
+                <button
+                  type="button"
+                  className="feed-search-clear"
+                  onClick={handleClearSearch}
+                  aria-label="Clear search"
+                  title="Clear search"
+                >
+                  ×
+                </button>
+              ) : (
+                <kbd className="feed-search-kbd" aria-hidden="true">/</kbd>
+              )}
             </div>
             <div className="feed-toolbar-right">
               <div className="feed-sort" role="tablist" aria-label="Sort posts">
@@ -505,8 +599,8 @@ function Home() {
               </div>
               <div className="feed-meta">
                 {activeCategory !== 'All' && (
-                  <span className="feed-meta-chip">
-                    {activeCategory}
+                  <span className="feed-meta-chip" title={activeCategory}>
+                    {displayActiveCategory}
                     <button
                       className="feed-meta-clear"
                       onClick={() => setActiveCategory('All')}
@@ -545,7 +639,7 @@ function Home() {
                   ? 'No posts match that search.'
                   : activeCategory === 'All'
                   ? 'No posts yet.'
-                  : `Nothing in “${activeCategory}” yet.`}
+                  : `Nothing in “${displayActiveCategory}” yet.`}
               </div>
               {(normalizedQuery || activeCategory !== 'All') && (
                 <button
@@ -651,6 +745,9 @@ function PostMedia({ post }) {
         preload="metadata"
         poster={post.image_url || undefined}
         aria-label={`Video attached to post by ${post.handle || 'unknown'}`}
+        // Video controls are interactive; clicking them shouldn't navigate
+        // the surrounding card-link to /post/<id>.
+        onClick={(e) => e.stopPropagation()}
       >
         <source src={`/api/video?url=${encodeURIComponent(post.video_url)}`} type="video/mp4" />
         {/* Fallback for browsers that can't play the inline video */}
@@ -698,8 +795,13 @@ function PostCard({ post, index }) {
     return () => window.removeEventListener('resize', check);
   }, [post.post_text, expanded]);
 
-  async function handleShare() {
-    // H4: Share the harshtruth.us post page (not x.com) so the recipient
+  async function handleShare(e) {
+    // Audit 2026-05-08 C3: the surrounding card is a <Link> to /post/<id>.
+    // Stop propagation so a Share click doesn't also navigate to the
+    // detail page.
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    // Share the harshtruth.us post page (not x.com) so the recipient
     // lands on our curated context. Falls back to current page if no id.
     const ourUrl =
       typeof window !== 'undefined' && post.id
@@ -728,7 +830,12 @@ function PostCard({ post, index }) {
   const views = formatCount(post.view_count);
   const hasMetrics = reposts || likes || views;
 
-  return (
+  // Audit 2026-05-08 C3: home cards are clickable to /post/<id>. We wrap
+  // the article in a Next.js Link. Inner controls (share button, view-on-X
+  // anchor, see more / less) all stopPropagation so they don't navigate.
+  const detailHref = post.id ? `/post/${post.id}` : null;
+
+  const cardBody = (
     <article
       className="post-card"
       style={{ animationDelay: `${Math.min(index, 10) * 0.04}s` }}
@@ -748,7 +855,7 @@ function PostCard({ post, index }) {
         <button
           type="button"
           className="post-see-more"
-          onClick={() => setExpanded(true)}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setExpanded(true); }}
         >
           See more
         </button>
@@ -757,7 +864,7 @@ function PostCard({ post, index }) {
         <button
           type="button"
           className="post-see-more"
-          onClick={() => setExpanded(false)}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setExpanded(false); }}
         >
           See less
         </button>
@@ -830,12 +937,28 @@ function PostCard({ post, index }) {
             target="_blank"
             rel="noopener noreferrer"
             className="post-link"
+            // Card is wrapped in a Next.js Link to /post/<id>. Without
+            // stopPropagation, clicking "View on X" would also navigate
+            // in-app to the detail page in the background.
+            onClick={(e) => e.stopPropagation()}
           >
             View on X <span className="post-arrow" aria-hidden="true">&rarr;</span>
           </a>
         )}
       </div>
     </article>
+  );
+
+  if (!detailHref) return cardBody;
+
+  return (
+    <Link
+      href={detailHref}
+      className="post-card-link"
+      aria-label={`Open detail page for post by ${post.handle || 'unknown'}`}
+    >
+      {cardBody}
+    </Link>
   );
 }
 

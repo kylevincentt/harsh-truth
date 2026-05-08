@@ -58,6 +58,20 @@
   border-top: 1px solid var(--border);
 }
 
+/*
+ * Audit 2026-05-08 L5: small "Imported from X on YYYY-MM-DD" footnote
+ * under the post footer. Reinforces the "this is a real receipt that was
+ * preserved" framing without competing with the post text.
+ */
+.post-detail-imported {
+  margin-top: 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: right;
+  opacity: 0.75;
+}
+
 @media (max-width: 768px) {
   .post-detail-wrap {
     padding: 1rem;
