@@ -155,3 +155,64 @@ main:focus-visible,
 .notfound-wrap {
   min-height: calc(100vh - var(--header-height, 60px));
 }
+
+/* ----------------------------------------------------------------------
+ * M10 — Google sign-in button: dark variant matching site theme
+ * --------------------------------------------------------------------*/
+/*
+ * The default white background with full-width-on-dark made the button
+ * read as a "flashbang" against the rest of the modal. Match the
+ * site's bg-card surface so the modal feels of a piece. Google's
+ * brand guidelines explicitly permit a dark variant for dark UIs.
+ */
+.google-btn {
+  background: var(--bg-card) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+}
+.google-btn:hover {
+  background: var(--bg-card-hover) !important;
+  border-color: var(--text-muted) !important;
+}
+.google-btn:focus-visible {
+  outline: 2px solid var(--gold) !important;
+  outline-offset: 2px !important;
+}
+
+/* ----------------------------------------------------------------------
+ * L2 — breathing room under "Sign in required to submit"
+ * --------------------------------------------------------------------*/
+/*
+ * Audit noted the helper text was tight against the SUBMIT button.
+ * Add the missing 8px (≈0.5rem) of top margin.
+ */
+.submit-hint {
+  margin-top: 0.5rem;
+}
+
+/* ----------------------------------------------------------------------
+ * L9 — mobile category pill row scroll affordance
+ * --------------------------------------------------------------------*/
+/*
+ * The horizontal pill row scrolls on small viewports but had no fade
+ * or chevron, so the scroll wasn't obvious. Add a right-edge fade-out
+ * mask that hints there's more content past Media. The mask only kicks
+ * in on viewports that actually use the horizontal-scroll layout
+ * (≤768px).
+ */
+@media (max-width: 768px) {
+  .mobile-category-bar {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      black 0,
+      black calc(100% - 24px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      black 0,
+      black calc(100% - 24px),
+      transparent 100%
+    );
+  }
+}
