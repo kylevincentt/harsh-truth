@@ -1203,7 +1203,7 @@ function SubmissionModal({ onClose, user, categories, restoreRef }) {
           />
         </div>
 
-        <div class="form-group">
+        <div className="form-group">
           <label className="form-label" htmlFor="sub-note">Why save this post? (optional)</label>
           <textarea
             id="sub-note"
