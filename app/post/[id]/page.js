@@ -74,6 +74,21 @@ function formatCount(n) {
   return (v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, '')) + 'M';
 }
 
+// Format an ISO timestamp as "MAY 7, 2026" — matches the all-caps
+// MONTH YEAR style used by date_label on cards. Used for the imported-on
+// footnote at the bottom of the detail page (audit L5).
+function formatImportedDate(iso) {
+  if (!iso) return null;
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  } catch {
+    return null;
+  }
+}
+
 // Build a SocialMediaPosting JSON-LD object for the post — gives Google
 // rich-result eligibility for shared X posts and helps it understand
 // the relationship between our curated copy and the source tweet.
@@ -171,6 +186,7 @@ export default async function PostPage({ params }) {
   const likes = formatCount(post.like_count);
   const views = formatCount(post.view_count);
   const hasMetrics = reposts || likes || views;
+  const importedOn = formatImportedDate(post.created_at);
 
   const jsonLd = buildJsonLd(post);
   const breadcrumbLd = buildBreadcrumbLd(post);
@@ -201,6 +217,13 @@ export default async function PostPage({ params }) {
       </header>
 
       <main className="post-detail-wrap">
+        {/* Audit M5: a real h1 so a11y/SEO tooling has a primary heading.
+            It's visually hidden via .post-detail-h1 — the existing handle/
+            category/date row already serves as the visible heading. */}
+        <h1 className="post-detail-h1">
+          {post.handle || 'Post'} — {post.category || 'HARSH TRUTH'}
+        </h1>
+
         <nav className="post-detail-crumbs" aria-label="Breadcrumb">
           <Link href="/" className="post-detail-crumb-link">Feed</Link>
           <span className="post-detail-crumb-sep" aria-hidden="true">›</span>
@@ -246,7 +269,7 @@ export default async function PostPage({ params }) {
               src={post.image_url}
               alt={`Image attached to post by ${post.handle || 'unknown'}`}
               className="post-media post-image"
-              loading="lazy"
+              loading="eager"
               decoding="async"
             />
           ) : null}
@@ -274,6 +297,12 @@ export default async function PostPage({ params }) {
               </a>
             )}
           </div>
+
+          {importedOn && (
+            <p className="post-detail-imported">
+              Imported from X on {importedOn}.
+            </p>
+          )}
         </article>
       </main>
     </>
