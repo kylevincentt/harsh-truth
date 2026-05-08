@@ -105,6 +105,46 @@ function Home() {
     }
   }, []);
 
+  // H2: Read filter state from URL on mount. ?cat=Immigration&sort=popular&q=foo
+  // gives a deep-linkable / shareable feed view. We only read here; the
+  // write effect below mirrors the active state back into the URL.
+  const didHydrateFromUrl = useRef(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const sp = new URLSearchParams(window.location.search);
+    const cat = sp.get('cat');
+    const sort = sp.get('sort');
+    const q = sp.get('q');
+    if (cat) setActiveCategory(cat);
+    if (sort === 'popular' || sort === 'latest') setSortBy(sort);
+    if (q) setQuery(q);
+    didHydrateFromUrl.current = true;
+  }, []);
+
+  // H2: Write filter state to URL on change. Skip the very first render so we
+  // don't clobber other params (?signin=1, etc.) before the read effect runs.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!didHydrateFromUrl.current) return;
+    const url = new URL(window.location.href);
+    if (activeCategory && activeCategory !== 'All') {
+      url.searchParams.set('cat', activeCategory);
+    } else {
+      url.searchParams.delete('cat');
+    }
+    if (sortBy && sortBy !== 'latest') {
+      url.searchParams.set('sort', sortBy);
+    } else {
+      url.searchParams.delete('sort');
+    }
+    if (query) {
+      url.searchParams.set('q', query);
+    } else {
+      url.searchParams.delete('q');
+    }
+    window.history.replaceState({}, '', url.toString());
+  }, [activeCategory, sortBy, query]);
+
   useEffect(() => {
     const updateHeaderHeight = () => {
       if (headerRef.current) {
@@ -659,10 +699,16 @@ function PostCard({ post, index }) {
   }, [post.post_text, expanded]);
 
   async function handleShare() {
+    // H4: Share the harshtruth.us post page (not x.com) so the recipient
+    // lands on our curated context. Falls back to current page if no id.
+    const ourUrl =
+      typeof window !== 'undefined' && post.id
+        ? `${window.location.origin}/post/${post.id}`
+        : post.post_url || '';
     const shareData = {
       title: `HARSH TRUTH — ${post.handle || 'Post'}`,
       text: post.post_text ? post.post_text.slice(0, 140) : '',
-      url: post.post_url || (typeof window !== 'undefined' ? window.location.href : ''),
+      url: ourUrl || (typeof window !== 'undefined' ? window.location.href : ''),
     };
     try {
       if (typeof navigator !== 'undefined' && navigator.share) {
