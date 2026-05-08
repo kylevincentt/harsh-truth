@@ -406,7 +406,7 @@ export default function AdminPage() {
     }));
   }
 
-  async function runBackfill({ handles, onlyMissingMedia, limit }) {
+  async function runBackfill({ handles, onlyMissingMedia, rebuildText, onlyConcatBugged, limit }) {
     setBackfillRunning(true);
     setBackfillResults(null);
     const res = await fetch('/api/admin/backfill-media', {
@@ -415,6 +415,8 @@ export default function AdminPage() {
       body: JSON.stringify({
         handles: handles && handles.length ? handles : undefined,
         onlyMissingMedia,
+        rebuildText,
+        onlyConcatBugged,
         limit,
       }),
     });
@@ -442,6 +444,20 @@ export default function AdminPage() {
 
   function handleBackfillAllMissing() {
     runBackfill({ handles: [], onlyMissingMedia: true, limit: 200 });
+  }
+
+  // 2026-05-08 H1/H2 repair: pull every concat-bugged post's text afresh
+  // through the fixed lib/twitter.js extractor. Skips rows whose text
+  // already reads cleanly so we don't waste tweet-API budget on rows that
+  // are fine.
+  function handleRebuildConcatText() {
+    runBackfill({
+      handles: [],
+      onlyMissingMedia: false,
+      rebuildText: true,
+      onlyConcatBugged: true,
+      limit: 500,
+    });
   }
 
   // Shared: close confirmation modals with Escape
@@ -922,6 +938,21 @@ export default function AdminPage() {
               </p>
             </div>
 
+            <div>
+              <button
+                className="cat-add-btn"
+                onClick={handleRebuildConcatText}
+                disabled={backfillRunning}
+              >
+                {backfillRunning ? 'Running…' : 'Repair concat-bugged text (re-pull from X)'}
+              </button>
+              <p className="form-helper" style={{ marginTop: '0.5rem' }}>
+                Audit 2026-05-08 H1/H2: re-pulls text only for posts whose existing
+                text shows the missing-space pattern (e.g. &ldquo;exploded.Jonathan&rdquo;).
+                Skips posts that already read cleanly. Up to 500 posts per run.
+              </p>
+            </div>
+
             <form className="cat-add-row" onSubmit={handleBackfillSubmit} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
               <label htmlFor="backfill-handles" className="form-label">
                 Backfill specific handles (re-fetches even if media exists)
@@ -962,7 +993,7 @@ export default function AdminPage() {
                 </div>
                 <details style={{ marginTop: '0.75rem' }}>
                   <summary style={{ cursor: 'pointer', color: 'var(--text-muted)' }}>
-                    Per-post results (${backfillResults.results?.length || 0})
+                    Per-post results ({backfillResults.results?.length || 0})
                   </summary>
                   <ul style={{ marginTop: '0.5rem', paddingLeft: '1.25rem', fontSize: '0.78rem' }}>
                     {(backfillResults.results || []).map((r) => (

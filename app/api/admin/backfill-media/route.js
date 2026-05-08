@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '../../../../lib/supabase';
 import { getAdminUser } from '../../../../lib/admin-auth';
-import { fetchTweetData, postTextLooksUnavailable } from '../../../../lib/twitter';
+import {
+  fetchTweetData,
+  postTextLooksUnavailable,
+  postTextLooksConcatBugged,
+} from '../../../../lib/twitter';
 
 // POST /api/admin/backfill-media
 //
@@ -9,7 +13,14 @@ import { fetchTweetData, postTextLooksUnavailable } from '../../../../lib/twitte
 //   { ids?: string[],            // backfill only these approved_posts.id values
 //     handles?: string[],        // backfill posts whose handle is in this list (e.g. ['@Breaking911'])
 //     onlyMissingMedia?: boolean // default true — skip posts that already have video_url or image_url
-//     limit?: number             // default 50, max 200
+//     rebuildText?: boolean      // default false — re-fetch + overwrite existing text on every targeted row
+//                                //   (used to repair the pre-2026-05-08 concat bug where <br> in oEmbed
+//                                //    was stripped without inserting whitespace, producing
+//                                //    "exploded.Jonathan"-style text in 32% of imported posts).
+//     onlyConcatBugged?: boolean // default false — when true, only update rows whose existing post_text
+//                                //   matches the concat-bug heuristic. Pairs well with rebuildText so a
+//                                //   one-click rebuild only touches rows that actually need it.
+//     limit?: number             // default 50, max 500
 //   }
 //
 // Re-fetches each tweet via the public oEmbed + syndication APIs and updates
@@ -37,7 +48,9 @@ export async function POST(request) {
     ? body.handles.filter(Boolean).map((h) => (h.startsWith('@') ? h : `@${h}`))
     : null;
   const onlyMissingMedia = body.onlyMissingMedia !== false; // default true
-  const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 200);
+  const rebuildText = body.rebuildText === true;            // default false
+  const onlyConcatBugged = body.onlyConcatBugged === true;  // default false
+  const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 500);
 
   const supabase = createAdminClient();
 
@@ -61,10 +74,22 @@ export async function POST(request) {
   for (const post of posts) {
     const hasMedia = Boolean(post.image_url || post.video_url);
     const looksDead = postTextLooksUnavailable(post.post_text);
+    const looksBugged = postTextLooksConcatBugged(post.post_text);
 
-    if (onlyMissingMedia && hasMedia && !looksDead) {
+    if (onlyMissingMedia && hasMedia && !looksDead && !rebuildText) {
       skipped++;
       results.push({ id: post.id, handle: post.handle, status: 'skipped' });
+      continue;
+    }
+
+    if (onlyConcatBugged && !looksBugged) {
+      skipped++;
+      results.push({
+        id: post.id,
+        handle: post.handle,
+        status: 'skipped',
+        reason: 'text_clean',
+      });
       continue;
     }
 
@@ -93,8 +118,17 @@ export async function POST(request) {
 
     // Build update payload — only set columns where we actually got new data,
     // so we don't clobber human edits on text or earlier-fetched media.
+    //
+    // Text overwrite policy:
+    //   - rebuildText === true  → overwrite if we got fresh text, regardless
+    //                              of whether the existing text looks fine.
+    //   - rebuildText === false → only overwrite empty / tombstone text
+    //                              (legacy behaviour, preserves hand-curated copy).
     const update = {};
-    if (tweet.text && (!post.post_text || looksDead)) update.post_text = tweet.text;
+    const shouldWriteText = tweet.text && (
+      rebuildText || !post.post_text || looksDead
+    );
+    if (shouldWriteText) update.post_text = tweet.text;
     if (tweet.imageUrl) update.image_url = tweet.imageUrl;
     if (tweet.videoUrl) update.video_url = tweet.videoUrl;
     if (tweet.mediaType) update.media_type = tweet.mediaType;
