@@ -1,0 +1,157 @@
+/*
+ * Audit 2026-05-08 — scoped overrides on top of globals.css.
+ * Kept in a separate file so the audit-driven changes are easy to revert
+ * or review without untangling them from the 2,400-line main stylesheet.
+ */
+
+/* ----------------------------------------------------------------------
+ * H4 — page-wide focus glow
+ * --------------------------------------------------------------------*/
+/*
+ * The global :focus-visible rule in globals.css gives every focused
+ * element a 2px gold ring. That's correct for buttons, inputs, links,
+ * etc. — but the post detail page's <main> wrapper and skip-link target
+ * (.feed) get programmatic focus, and a 2px ring around an entire 720px
+ * column reads as a "page-wide glow." Suppress the ring on focusable
+ * page containers; keep it everywhere else.
+ */
+main:focus,
+main:focus-visible,
+.post-detail-wrap:focus,
+.post-detail-wrap:focus-visible,
+.notfound-wrap:focus,
+.notfound-wrap:focus-visible,
+.about-wrap:focus,
+.about-wrap:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ----------------------------------------------------------------------
+ * H3 — portrait images on the post detail page were being clipped
+ * --------------------------------------------------------------------*/
+/*
+ * .post-image globally has max-height: 360px + object-fit: cover so the
+ * home grid stays visually consistent. On the detail page (which exists
+ * to surface the *full* receipt) that crops the headline off NYT
+ * screenshots and similar portrait media. Honor the natural aspect ratio
+ * here.
+ */
+.post-detail-card .post-image {
+  max-height: none;
+  height: auto;
+  width: 100%;
+  object-fit: contain;
+  background: var(--bg);
+}
+
+/*
+ * .post-video has max-height: 480px globally. On the detail page give
+ * portrait videos a bit more vertical room before they hit the cap.
+ */
+.post-detail-card .post-video {
+  max-height: 80vh;
+}
+
+/* ----------------------------------------------------------------------
+ * M5 — make the post detail page's logical heading discoverable
+ * --------------------------------------------------------------------*/
+/*
+ * The detail page renders a screen-reader-only h1 so a11y/SEO tools can
+ * find a primary heading without disturbing the existing visual header.
+ * (Class is .post-detail-h1 — defined inline at the top of the page.)
+ */
+.post-detail-h1 {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------------
+ * C3 — home cards link to /post/<id>
+ * --------------------------------------------------------------------*/
+/*
+ * Each PostCard is wrapped in a Next.js Link. The Link should not
+ * disturb the card's existing layout, color, or animation.
+ */
+.post-card-link,
+.post-card-link:hover,
+.post-card-link:visited,
+.post-card-link:focus,
+.post-card-link:focus-visible {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * Show the keyboard focus ring on the inner article so it tracks the
+ * card border instead of bleeding outside it.
+ */
+.post-card-link:focus-visible .post-card {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/*
+ * Prevent the inner card from blocking the Link's pointer events on
+ * dead space; keep buttons/links inside the card clickable as normal.
+ */
+.post-card-link .post-card {
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------------------
+ * M9 — visible clear-X for the search input
+ * --------------------------------------------------------------------*/
+.feed-search-clear {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.feed-search-clear:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+.feed-search-clear:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Hide the clear-X on small screens — the kbd hint already disappears
+ * there, and the input itself is wide enough that a manual select-all-
+ * delete is fine. */
+@media (max-width: 768px) {
+  .feed-search-clear {
+    display: none;
+  }
+}
+
+/* ----------------------------------------------------------------------
+ * M2 — surface the standard header on /404 with the same layout the
+ * rest of the site uses. The 404 page's notfound-wrap is centered;
+ * give it a top-aligned variant so the header doesn't overlap.
+ * --------------------------------------------------------------------*/
+.notfound-wrap {
+  min-height: calc(100vh - var(--header-height, 60px));
+}
