@@ -68,9 +68,17 @@ export default function AboutPage() {
         <section className="about-section">
           <h2>What&rsquo;s here</h2>
           <p>
-            Not breaking news. Not hot takes. The harsh truths that actually
-            shape the country &mdash; filed by category, so you can go find
-            the one you need.
+            Breaking news, pointed takes, court rulings, charts, screenshots,
+            field reports &mdash; the harsh truths that actually shape the
+            country, kept on file by category. Some of it is heat. Some of it
+            is paperwork. All of it is dated, sourced, and one click away from
+            the original X post.
+          </p>
+          <p>
+            What it isn&rsquo;t: an algorithm. The feed is what got picked,
+            in the order it got picked. No engagement bait, no recommendation
+            engine, no infinite scroll &mdash; just the receipts, on a shelf,
+            in plain sight.
           </p>
         </section>
 
