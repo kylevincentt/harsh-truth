@@ -43,3 +43,164 @@
     font-size: 0.7rem;
   }
 }
+
+/* ---------------------------------------------------------------- *
+ * H5 / H6 + M-tier — Mobile visual polish (audit 2026-05-07)
+ *
+ * Tightening the feed view at iPhone widths after we discovered:
+ *   - The post date got its own full-width row (`width: 100%; order: 3`),
+ *     which wasted vertical space. Inline it with the handle/category and
+ *     let the row wrap if it has to.
+ *   - The active mobile category pill needed a stronger affordance so
+ *     it reads as the current filter at a glance while scrolling.
+ *   - The feed toolbar's filter chip ("DECLINE ×") was being pushed to
+ *     a second row because feed-meta sits inside feed-toolbar-right which
+ *     wraps. Pin it to its own row at narrow widths so it's never ambiguous.
+ *   - The post text block at 393px is denser than necessary — the
+ *     globals override sets 0.95rem but in a single column we can give
+ *     it a touch more line-height to feel less cramped.
+ *   - The post-detail page (added in PR #4) has no mobile-specific
+ *     padding tweaks; trim the side gutters at iPhone widths.
+ *   - "Sign in required to submit" hint was visually heavy in the
+ *     mobile drawer — bump its color contrast down.
+ * ---------------------------------------------------------------- */
+@media (max-width: 768px) {
+  /* Post card header — let the date sit inline with handle + category and
+     wrap to the next line only when there isn't room. The previous rule
+     forced it to its own row even on wider phones. */
+  .post-card-header {
+    flex-wrap: wrap;
+    align-items: baseline;
+    row-gap: 0.25rem;
+  }
+  .post-date {
+    margin-left: auto;
+    width: auto;
+    order: initial;
+    flex-shrink: 0;
+  }
+
+  /* Active mobile category pill: thicker, more saturated, and a subtle
+     ring so it's obvious which filter is active while horizontally
+     scrolling. Inactive pills get a slightly stronger border so the row
+     reads as a track, not a list. */
+  .mobile-cat-pill {
+    border-color: var(--border);
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+  .mobile-cat-pill.active {
+    box-shadow: 0 0 0 1px var(--red), 0 1px 4px -1px rgba(229, 79, 50, 0.4);
+    font-weight: 600;
+  }
+
+  /* Feed toolbar: keep search + sort on the same row, but force the
+     filter chip + count meta onto its own row if either is present.
+     This stops the chip from squeezing the search input. */
+  .feed-toolbar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Post text: bump line-height slightly for the single-column feed. */
+  .post-text {
+    line-height: 1.65;
+  }
+
+  /* Post detail page (route /post/[id]): tighten side gutters on mobile.
+     The route uses .post-detail-* classes from app/post/[id]/post-detail.css. */
+  .post-detail-wrap,
+  main.post-detail-wrap {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+
+  /* Submit hint copy — softer color so it reads as helper, not warning. */
+  .submit-hint {
+    color: var(--text-muted);
+    opacity: 0.75;
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * M-tier — Search input affordances + empty-state polish
+ *
+ * - The "/" keyboard hint was hidden on all <=768px screens. Restore
+ *   it on tablets (>=520px) where a Bluetooth keyboard is plausible.
+ * - The empty-state "Clear filters" button was un-styled visually
+ *   compared to the primary submit button — make it a clear secondary
+ *   action so users notice they can recover.
+ * - The "× Clear filters" chip in the toolbar gets a focus ring so
+ *   keyboard users can tell when it's focused.
+ * ---------------------------------------------------------------- */
+@media (min-width: 520px) and (max-width: 768px) {
+  .feed-search-kbd {
+    display: inline-flex;
+  }
+}
+
+.feed-empty .feed-empty-btn {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: transparent;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.feed-empty .feed-empty-btn:hover,
+.feed-empty .feed-empty-btn:focus-visible {
+  background: var(--bg-card);
+  border-color: var(--text-muted);
+  color: var(--text);
+  outline: none;
+}
+
+.feed-meta-clear:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------- *
+ * M-tier — Skip-link visibility on focus
+ *
+ * The "Skip to feed" link is rendered first in <body> for a11y but the
+ * base styles position it off-screen with no on-focus return. Bring it
+ * on-screen when a keyboard user tabs into the page so screen-reader
+ * announcements and visual focus stay in sync.
+ * ---------------------------------------------------------------- */
+.skip-link:focus,
+.skip-link:focus-visible {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 1000;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  text-decoration: none;
+  letter-spacing: 0.05em;
+}
+
+/* ---------------------------------------------------------------- *
+ * M-tier — Reduce motion respect on the share-success flash
+ *
+ * The PostCard's "Copied" pill triggers an opacity flash via React
+ * state. Honor prefers-reduced-motion by snapping the transition.
+ * ---------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .post-share,
+  .feed-meta-chip,
+  .mobile-cat-pill {
+    transition: none;
+  }
+}
