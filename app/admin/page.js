@@ -547,8 +547,25 @@ export default function AdminPage() {
     );
   }
 
+  // Audit R3 2026-05-09 L11: short label for the active admin tab. Used
+  // both as the visible tab name (already present) and as the sr-only h2
+  // below so screen-reader users can navigate by section heading.
+  const activeTabLabel = (
+    activeTab === 'queue' ? 'Approval Queue' :
+    activeTab === 'categories' ? 'Categories' :
+    activeTab === 'themes' ? 'Themes' :
+    activeTab === 'backfill' ? 'Backfill' :
+    'Admin'
+  );
+
   return (
     <div className="admin-overlay">
+      {/* Audit R3 2026-05-09 M1: sr-only h1 so the admin route has a real
+          page heading. The visible "ADMIN PANEL" string is a span and
+          stays one — promoting it to <h1> would visually shrink/restyle
+          via UA defaults. */}
+      <h1 className="sr-only">Admin — HARSH TRUTH</h1>
+
       <div className="admin-header">
         <span className="admin-title">ADMIN PANEL</span>
         {submissions.length > 0 && (
@@ -562,14 +579,39 @@ export default function AdminPage() {
           >
             Sign Out
           </button>
+          {/* Audit R3 2026-05-09 L6: a "View site" link that opens the
+              public site in a new tab — mirrors common CMS patterns and
+              shaves clicks during content review. The pre-existing
+              "Back to site" stays for the leaving-admin pattern. */}
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="admin-back"
+            title="Open the public site in a new tab"
+          >
+            View site &#8599;
+          </a>
           <Link href="/" className="admin-back">
             &larr; Back to site
           </Link>
         </div>
       </div>
 
-      <div className="admin-tabs">
+      {/* Audit R3 2026-05-09 L11: sr-only h2 per active tab so the admin
+          route has heading hierarchy parity with /about. Visible label is
+          already the tab name; this just gives screen readers the same
+          structural cue. */}
+      <h2 className="sr-only">{activeTabLabel}</h2>
+
+      {/* Audit R3 2026-05-09 L11: tablist + tab roles on every button so
+          assistive tech treats the whole strip as a real tab group. */}
+      <div className="admin-tabs" role="tablist" aria-label="Admin sections">
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'queue'}
+          aria-label={activeTab === 'queue' ? 'Approval Queue (active)' : 'Approval Queue'}
           className={`admin-tab ${activeTab === 'queue' ? 'active' : ''}`}
           onClick={() => setActiveTab('queue')}
         >
@@ -579,6 +621,10 @@ export default function AdminPage() {
           )}
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'categories'}
+          aria-label={activeTab === 'categories' ? 'Categories (active)' : 'Categories'}
           className={`admin-tab ${activeTab === 'categories' ? 'active' : ''}`}
           onClick={() => setActiveTab('categories')}
         >
@@ -586,6 +632,10 @@ export default function AdminPage() {
           <span className="tab-count">{categories.length}</span>
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'themes'}
+          aria-label={activeTab === 'themes' ? 'Themes (active)' : 'Themes'}
           className={`admin-tab ${activeTab === 'themes' ? 'active' : ''}`}
           onClick={() => setActiveTab('themes')}
         >
@@ -597,6 +647,7 @@ export default function AdminPage() {
           onClick={() => setActiveTab('backfill')}
           role="tab"
           aria-selected={activeTab === 'backfill'}
+          aria-label={activeTab === 'backfill' ? 'Backfill (active)' : 'Backfill'}
           type="button"
         >
           Backfill
@@ -662,19 +713,27 @@ export default function AdminPage() {
             <div className="cat-list">
               {categories.map((cat, index) => (
                 <div key={cat.id} className="cat-row">
+                  {/* Audit R3 2026-05-09 L4: order buttons need an aria-label
+                      so screen readers don't read "▲ button" 20 times in a row.
+                      The full set is always rendered (2 per row, ends disabled)
+                      so the audit's count of 19 was a one-off miscount. */}
                   <div className="cat-order-btns">
                     <button
+                      type="button"
                       className="cat-order-btn"
                       onClick={() => handleMoveCategory(index, 'up')}
                       disabled={index === 0}
+                      aria-label={`Move ${cat.name} up`}
                       title="Move up"
                     >
                       ▲
                     </button>
                     <button
+                      type="button"
                       className="cat-order-btn"
                       onClick={() => handleMoveCategory(index, 'down')}
                       disabled={index === categories.length - 1}
+                      aria-label={`Move ${cat.name} down`}
                       title="Move down"
                     >
                       ▼
