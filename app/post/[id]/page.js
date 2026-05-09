@@ -7,6 +7,37 @@ export const dynamic = 'force-dynamic';
 
 const SITE_URL = 'https://harshtruth.us';
 
+// Twitter snowflake epoch — Nov 4, 2010 01:42:54 UTC.
+const TWITTER_SNOWFLAKE_EPOCH_MS = 1288834974657n;
+
+// Audit 2026-05-08 L11: derive a precise day-level date from the tweet
+// snowflake ID embedded in post_url (mirrors lib/twitter.js / app/page.js
+// helper). Returns a millisecond Unix timestamp, or null when the URL
+// can't be parsed (very old rows, hand-edited URLs).
+function postedAtMs(post) {
+  if (!post || typeof post.post_url !== 'string') return null;
+  const m = post.post_url.match(/\/status\/(\d+)/);
+  if (!m) return null;
+  try {
+    const id = BigInt(m[1]);
+    return Number((id >> 22n) + TWITTER_SNOWFLAKE_EPOCH_MS);
+  } catch {
+    return null;
+  }
+}
+
+const MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function formatPostDateLabel(post) {
+  const ms = postedAtMs(post);
+  if (ms != null) {
+    const d = new Date(ms);
+    if (!Number.isNaN(d.getTime())) {
+      return `${MONTH_ABBR[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+  }
+  return post && post.date_label ? post.date_label : '';
+}
+
 async function fetchPost(id) {
   // Service-role client returns the row in one round-trip without RLS
   // surprises. The route is read-only — no privileged actions happen here.
@@ -82,8 +113,7 @@ function formatImportedDate(iso) {
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return null;
-    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    return `${MONTH_ABBR[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   } catch {
     return null;
   }
@@ -187,6 +217,9 @@ export default async function PostPage({ params }) {
   const views = formatCount(post.view_count);
   const hasMetrics = reposts || likes || views;
   const importedOn = formatImportedDate(post.created_at);
+  // Audit 2026-05-08 L11: prefer the day-precision X timestamp over the
+  // legacy MONTH YEAR `date_label`.
+  const dateLabel = formatPostDateLabel(post);
 
   const jsonLd = buildJsonLd(post);
   const breadcrumbLd = buildBreadcrumbLd(post);
@@ -239,7 +272,7 @@ export default async function PostPage({ params }) {
           <div className="post-card-header">
             <span className="post-handle">{post.handle}</span>
             <span className="post-category">{post.category}</span>
-            <span className="post-date">{post.date_label}</span>
+            <span className="post-date">{dateLabel}</span>
           </div>
 
           {post.post_text && (
