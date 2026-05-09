@@ -261,6 +261,14 @@ function RelatedPostCard({ post }) {
           <span className="post-detail-related-date">{dateLabel}</span>
         )}
       </div>
+      {/* Audit R3 2026-05-09 L9: small category badge on each related card.
+          The "More from <Category>" header already names the category, but
+          when a visitor hops into a related card and lands on its detail
+          page, the badge here makes the implicit "same category" promise
+          visible at a glance. Mirrors .post-category styling. */}
+      {post.category && (
+        <span className="post-detail-related-cat">{post.category}</span>
+      )}
       <div className="post-detail-related-text">{excerpt}</div>
     </Link>
   );
