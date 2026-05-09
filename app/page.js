@@ -579,6 +579,11 @@ function Home() {
         </aside>
 
         <main className="feed" id="feed" tabIndex={-1}>
+          {/* Audit R3 2026-05-09 M1: sr-only h1 so screen-reader/SEO/a11y
+              tooling has a top-level heading on the home page. The visible
+              brand wordmark stays a span — site-wide, not page-specific —
+              so we don't end up with an h1 on every route. */}
+          <h1 className="sr-only">HARSH TRUTH — the receipts, organized.</h1>
           <div className="feed-toolbar" role="search">
             <label htmlFor="feed-search" className="sr-only">Search posts</label>
             <div className="feed-search-wrap">
@@ -624,10 +629,16 @@ function Home() {
             </div>
             <div className="feed-toolbar-right">
               <div className="feed-sort" role="tablist" aria-label="Sort posts">
+                {/* Audit R3 2026-05-09 L8: visible "is-active" class only
+                    changes color/weight, so screen readers announce both
+                    tabs identically. The aria-label suffix gives assistive
+                    tech the active-state cue that aria-selected alone
+                    doesn't always surface in tab roles. */}
                 <button
                   type="button"
                   role="tab"
                   aria-selected={sortBy === 'latest'}
+                  aria-label={sortBy === 'latest' ? 'Latest (active)' : 'Latest'}
                   className={`feed-sort-btn${sortBy === 'latest' ? ' is-active' : ''}`}
                   onClick={() => setSortBy('latest')}
                 >
@@ -637,6 +648,7 @@ function Home() {
                   type="button"
                   role="tab"
                   aria-selected={sortBy === 'popular'}
+                  aria-label={sortBy === 'popular' ? 'Popular (active)' : 'Popular'}
                   className={`feed-sort-btn${sortBy === 'popular' ? ' is-active' : ''}`}
                   onClick={() => setSortBy('popular')}
                 >
@@ -648,17 +660,37 @@ function Home() {
                 {activeCategory !== 'All' && (
                   <span className="feed-meta-chip" title={activeCategory}>
                     {displayActiveCategory}
+                    {/* Audit R3 2026-05-09 L3: aria-label gives screen
+                        readers what the × button does; add a matching
+                        title so hover users get the same hint. */}
                     <button
                       className="feed-meta-clear"
                       onClick={() => setActiveCategory('All')}
                       aria-label={`Clear ${activeCategory} filter`}
+                      title={`Clear ${activeCategory} filter`}
                     >
                       ×
                     </button>
                   </span>
                 )}
-                <span className="feed-meta-count">
-                  {loading ? '—' : `${filteredPosts.length} / ${totalCount}`}
+                {/* Audit R3 2026-05-09 L1: "20 / 106" reads as a fraction
+                    on first glance. Show only the total when nothing is
+                    filtered out, and use plain "of" wording otherwise. */}
+                <span
+                  className="feed-meta-count"
+                  aria-label={
+                    loading
+                      ? 'Loading posts'
+                      : filteredPosts.length === totalCount
+                      ? `${totalCount} posts`
+                      : `Showing ${filteredPosts.length} of ${totalCount} posts`
+                  }
+                >
+                  {loading
+                    ? '—'
+                    : filteredPosts.length === totalCount
+                    ? `${totalCount}`
+                    : `${filteredPosts.length} of ${totalCount}`}
                 </span>
               </div>
             </div>
@@ -681,12 +713,19 @@ function Home() {
           ) : filteredPosts.length === 0 ? (
             <div className="feed-empty">
               <div className="feed-empty-icon" aria-hidden="true">—</div>
+              {/* Audit R3 2026-05-09 L2: don't mirror an unknown attacker
+                  string back into page copy. If the URL hands us a category
+                  name that isn't in the real list (e.g. ?cat=NotARealCategory),
+                  fall back to a neutral message instead of curly-quoting
+                  whatever was in the URL. */}
               <div className="feed-empty-title">
                 {normalizedQuery
                   ? 'No posts match that search.'
                   : activeCategory === 'All'
                   ? 'No posts yet.'
-                  : `Nothing in “${displayActiveCategory}” yet.`}
+                  : categories.includes(activeCategory)
+                  ? `Nothing in “${displayActiveCategory}” yet.`
+                  : 'Nothing in that category.'}
               </div>
               {(normalizedQuery || activeCategory !== 'All') && (
                 <button
