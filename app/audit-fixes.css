@@ -216,3 +216,45 @@ main:focus-visible,
     );
   }
 }
+
+/* ----------------------------------------------------------------------
+ * L6 — sign-in button focus ring should match other interactive elements
+ * --------------------------------------------------------------------*/
+/*
+ * Before H4, .btn-signin inherited the global :focus-visible ring AND
+ * appeared to bleed into a wider page-level glow because programmatic
+ * focus on <main> picked up the same ring. With H4 in place the page
+ * glow is gone, but the focus ring on .btn-signin should still match
+ * the narrower, cleaner outline that .post-share / .post-link use.
+ * Pin the outline-offset to 2px and keep the gold color from the
+ * global rule — make it explicit so a future global change doesn't
+ * drift it back to the inconsistent state.
+ */
+.btn-signin:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ----------------------------------------------------------------------
+ * L12 — header brand link should stay clickable while a modal is open
+ * --------------------------------------------------------------------*/
+/*
+ * .modal-overlay sits at z-index: 200 and the .header at z-index: 100,
+ * so when a modal is open the overlay covers the header and intercepts
+ * clicks on the HARSH TRUTH wordmark. Bumping the header above the
+ * overlay would also expose Sign In / hamburger / etc. — useful for
+ * the brand, confusing for the rest. So lift the header above the
+ * overlay AND mute the rest of the header (pointer-events: none +
+ * reduced opacity) only while body has the .modal-open class added by
+ * useBodyScrollLock.
+ */
+body.modal-open .header {
+  z-index: 300;
+}
+body.modal-open .header > .header-right,
+body.modal-open .header > .hamburger-btn {
+  pointer-events: none;
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
