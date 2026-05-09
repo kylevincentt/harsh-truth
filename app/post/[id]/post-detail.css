@@ -163,6 +163,25 @@
   opacity: 0.85;
 }
 
+/*
+ * Audit R3 2026-05-09 L9: tiny category pill on each related card. Mirrors
+ * the .post-category chip on the home cards but at a smaller size to fit
+ * the compact related-strip layout.
+ */
+.post-detail-related-cat {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  line-height: 1.5;
+}
+
 .post-detail-related-text {
   font-family: var(--font-body);
   font-size: 0.82rem;
