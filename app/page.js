@@ -64,6 +64,23 @@ function sortKeyForLatest(post) {
   return 0;
 }
 
+// Audit 2026-05-08 L11: render day-precision dates ("MAY 2, 2026") on
+// the card row when the snowflake parses, falling back to the legacy
+// MONTH YEAR `date_label` for very old rows that can't be parsed. This
+// gives the "this is when it was said" label real precision without
+// requiring a backfill.
+const MONTH_ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function formatPostDateLabel(post) {
+  const ms = postedAtMs(post);
+  if (ms != null) {
+    const d = new Date(ms);
+    if (!Number.isNaN(d.getTime())) {
+      return `${MONTH_ABBR[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+  }
+  return post && post.date_label ? post.date_label : '';
+}
+
 // Small utility hook: lock body scroll while `open` is true.
 function useBodyScrollLock(open) {
   useEffect(() => {
@@ -376,6 +393,29 @@ function Home() {
     return acc;
   }, {});
 
+  // Audit 2026-05-08 L10: re-sort the public sidebar / mobile pill row
+  // by post count descending, with the admin-defined sort_order as the
+  // tiebreak (preserved as the original index in `categories`). The
+  // admin Categories tab still renders in admin sort_order — this is a
+  // public-side reorder so a fresh visitor sees a recognizable pattern
+  // (densest categories first) instead of an order that looks ad-hoc.
+  // 'All' stays pinned to the top.
+  const displayCategories = (() => {
+    const head = categories[0] === 'All' ? ['All'] : [];
+    const rest = categories.filter((c) => c !== 'All');
+    // While loading we don't have real counts yet; keep admin order so
+    // hydration doesn't visibly reshuffle the list under the user.
+    if (loading) return [...head, ...rest];
+    const indexed = rest.map((c, i) => ({ c, i }));
+    indexed.sort((a, b) => {
+      const ca = categoryCounts[a.c] || 0;
+      const cb = categoryCounts[b.c] || 0;
+      if (cb !== ca) return cb - ca;     // count desc
+      return a.i - b.i;                  // admin sort_order asc tiebreak
+    });
+    return [...head, ...indexed.map((x) => x.c)];
+  })();
+
   const totalCount = visiblePosts.length;
 
   // Audit 2026-05-08 M4: prevent attacker-controlled URLs from rendering an
@@ -458,7 +498,8 @@ function Home() {
       </header>
 
       <nav className="mobile-category-bar" aria-label="Category filter (mobile)">
-        {categories.map((cat) => (
+        {/* Audit 2026-05-08 L10: render in count-desc order (see displayCategories). */}
+        {displayCategories.map((cat) => (
           <button
             key={cat}
             className={`mobile-cat-pill${activeCategory === cat ? ' active' : ''}`}
@@ -501,7 +542,8 @@ function Home() {
 
           <div className="sidebar-section-label">Categories</div>
           <ul className="category-list" role="list">
-            {categories.map((cat) => (
+            {/* Audit 2026-05-08 L10: render in count-desc order (see displayCategories). */}
+            {displayCategories.map((cat) => (
               <li key={cat} role="listitem">
                 <button
                   type="button"
@@ -843,7 +885,9 @@ function PostCard({ post, index }) {
       <div className="post-card-header">
         <span className="post-handle">{post.handle}</span>
         <span className="post-category">{post.category}</span>
-        <span className="post-date">{post.date_label}</span>
+        {/* Audit 2026-05-08 L11: day-precision date when snowflake parses,
+            fall back to the stored MONTH YEAR string for old rows. */}
+        <span className="post-date">{formatPostDateLabel(post)}</span>
       </div>
       <div
         ref={textRef}
