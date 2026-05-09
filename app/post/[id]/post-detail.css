@@ -72,11 +72,116 @@
   opacity: 0.75;
 }
 
+/* ----------------------------------------------------------------------
+ * Audit 2026-05-08 L3: "More from <category>" related-posts strip.
+ * Renders below the main card. Up to 3 cards in a responsive grid:
+ * three columns on desktop, single column on mobile.
+ * --------------------------------------------------------------------*/
+.post-detail-related {
+  margin-top: 2.5rem;
+}
+
+.post-detail-related-header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.post-detail-related-title {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.post-detail-related-cat-link {
+  color: var(--gold);
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.post-detail-related-cat-link:hover {
+  opacity: 0.78;
+  text-decoration: underline;
+}
+
+.post-detail-related-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.post-detail-related-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.85rem 0.9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: inherit;
+  text-decoration: none;
+  min-height: 110px;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.post-detail-related-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+
+.post-detail-related-card:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.post-detail-related-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.post-detail-related-handle {
+  color: var(--gold);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.post-detail-related-date {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.post-detail-related-text {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 @media (max-width: 768px) {
   .post-detail-wrap {
     padding: 1rem;
   }
   .post-detail-card {
     padding: 1.25rem 1rem;
+  }
+  .post-detail-related-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -38,6 +38,25 @@ function formatPostDateLabel(post) {
   return post && post.date_label ? post.date_label : '';
 }
 
+// Mirror app/page.js isUnavailable() so the related strip filters out
+// tombstoned rows the home feed also hides.
+function isUnavailable(post) {
+  if (!post) return true;
+  if (post.image_url || post.video_url) return false;
+  const t = (post.post_text || '').trim().toLowerCase();
+  if (!t) return true;
+  return (
+    t === '(unavailable)' ||
+    t === 'unavailable' ||
+    t === 'tweet unavailable' ||
+    t === 'this post is unavailable' ||
+    t === 'this tweet is unavailable' ||
+    t === 'post approved from submission.' ||
+    t.startsWith('this post is unavailable') ||
+    t.startsWith('this tweet is unavailable')
+  );
+}
+
 async function fetchPost(id) {
   // Service-role client returns the row in one round-trip without RLS
   // surprises. The route is read-only — no privileged actions happen here.
@@ -52,16 +71,30 @@ async function fetchPost(id) {
   if (data.removed_at) return null;
   // Don't surface tombstoned posts (X import couldn't reach the original).
   // Mirrors isUnavailable() in app/page.js.
-  const t = (data.post_text || '').trim().toLowerCase();
-  const isTombstone =
-    !data.image_url &&
-    !data.video_url &&
-    (t === '(unavailable)' ||
-      t === 'unavailable' ||
-      t.startsWith('this post is unavailable') ||
-      t.startsWith('this tweet is unavailable'));
-  if (isTombstone) return null;
+  if (isUnavailable(data)) return null;
   return data;
+}
+
+// Audit 2026-05-08 L3: pull a few same-category posts (excluding the
+// current one and any soft-deleted rows) so the detail page can show a
+// "More from <category>" strip instead of dead-ending at "Back to feed".
+// Sort by like_count desc with created_at desc tiebreak — same as the
+// home feed's POPULAR sort. Pulls 8 rows so we still have ≥3 after the
+// tombstone filter.
+async function fetchRelatedPosts(post) {
+  if (!post || !post.category) return [];
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('approved_posts')
+    .select('id, handle, category, post_text, image_url, video_url, like_count, post_url, date_label, created_at, removed_at')
+    .eq('category', post.category)
+    .neq('id', post.id)
+    .is('removed_at', null)
+    .order('like_count', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(8);
+  if (error || !data) return [];
+  return data.filter((p) => !isUnavailable(p)).slice(0, 3);
 }
 
 export async function generateMetadata({ params }) {
@@ -208,9 +241,39 @@ function buildBreadcrumbLd(post) {
   };
 }
 
+// Audit 2026-05-08 L3: small card variant for the "More from <category>"
+// strip. Strictly text-only — no image, no video, no metrics — so the
+// strip stays compact regardless of whether the related posts have
+// media. Truncate text to ~140 chars to keep heights uniform.
+function RelatedPostCard({ post }) {
+  const text = (post.post_text || '').trim();
+  const excerpt = text.length > 160 ? `${text.slice(0, 157)}…` : text;
+  const dateLabel = formatPostDateLabel(post);
+  return (
+    <Link
+      href={`/post/${post.id}`}
+      className="post-detail-related-card"
+      aria-label={`Open detail page for post by ${post.handle || 'unknown'}`}
+    >
+      <div className="post-detail-related-meta">
+        <span className="post-detail-related-handle">{post.handle}</span>
+        {dateLabel && (
+          <span className="post-detail-related-date">{dateLabel}</span>
+        )}
+      </div>
+      <div className="post-detail-related-text">{excerpt}</div>
+    </Link>
+  );
+}
+
 export default async function PostPage({ params }) {
   const post = await fetchPost(params.id);
   if (!post) notFound();
+
+  // Fetch related posts in parallel-ready style; they're not critical so
+  // failure here returns [] and the strip is hidden. Awaited explicitly
+  // because Next 14 RSC needs the Promise resolved before render.
+  const related = await fetchRelatedPosts(post);
 
   const reposts = formatCount(post.repost_count);
   const likes = formatCount(post.like_count);
@@ -337,6 +400,36 @@ export default async function PostPage({ params }) {
             </p>
           )}
         </article>
+
+        {/* Audit 2026-05-08 L3: same-category related strip. Hidden when
+            we can't surface at least one related row so we don't render
+            an empty section header. */}
+        {related.length > 0 && (
+          <section
+            className="post-detail-related"
+            aria-labelledby="post-detail-related-heading"
+          >
+            <div className="post-detail-related-header">
+              <h2
+                id="post-detail-related-heading"
+                className="post-detail-related-title"
+              >
+                More from{' '}
+                <Link
+                  href={`/?cat=${encodeURIComponent(post.category || '')}`}
+                  className="post-detail-related-cat-link"
+                >
+                  {post.category}
+                </Link>
+              </h2>
+            </div>
+            <div className="post-detail-related-grid">
+              {related.map((r) => (
+                <RelatedPostCard key={r.id} post={r} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </>
   );

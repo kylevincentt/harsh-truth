@@ -81,14 +81,19 @@ function formatPostDateLabel(post) {
   return post && post.date_label ? post.date_label : '';
 }
 
-// Small utility hook: lock body scroll while `open` is true.
+// Small utility hook: lock body scroll while `open` is true. Also tags
+// <body> with `modal-open` so audit-fixes.css can lift the header
+// brand link above the modal overlay (audit 2026-05-08 L12 — clicking
+// HARSH TRUTH from inside the modal should still navigate home).
 function useBodyScrollLock(open) {
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('modal-open');
     return () => {
       document.body.style.overflow = prev;
+      document.body.classList.remove('modal-open');
     };
   }, [open]);
 }
