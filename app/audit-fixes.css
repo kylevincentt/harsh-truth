@@ -258,3 +258,23 @@ body.modal-open .header > .hamburger-btn {
   opacity: 0.45;
   transition: opacity 0.15s;
 }
+
+/* ----------------------------------------------------------------------
+ * Audit R3 2026-05-09 L7 — skip-link must reveal on first Tab
+ * --------------------------------------------------------------------*/
+/*
+ * The skip-link in app/layout.js is the first focusable element in the
+ * document, so first Tab from the URL bar should reveal it. The
+ * existing rule used only `:focus`. Some browsers (and some assistive
+ * tools) only fire the visible-state pseudo-class for keyboard focus
+ * via `:focus-visible`. Match both, and also lift z-index above the
+ * modal-open header (z:300) so the link can never get hidden behind
+ * a layered surface.
+ */
+.skip-link:focus,
+.skip-link:focus-visible {
+  top: 8px;
+  z-index: 1100;
+  outline: 2px solid var(--bg);
+  outline-offset: 2px;
+}
