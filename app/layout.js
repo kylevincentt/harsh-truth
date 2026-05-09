@@ -60,6 +60,16 @@ export const viewport = {
   maximumScale: 5,
 };
 
+// Audit R3 2026-05-09 M4: explicit 'auto' so the browser preserves the
+// prior page's scroll on back-button. force-dynamic detail pages were
+// sometimes landing at scrollTop=0 after history.back() instead of
+// returning to the related-strip the user was just looking at.
+const SCROLL_RESTORATION_INIT = `
+  if ('scrollRestoration' in history) {
+    try { history.scrollRestoration = 'auto'; } catch (e) {}
+  }
+`;
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
@@ -69,6 +79,9 @@ export default function RootLayout({ children }) {
         <link
           href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
+        />
+        <script
+          dangerouslySetInnerHTML={{ __html: SCROLL_RESTORATION_INIT }}
         />
       </head>
       <body>
